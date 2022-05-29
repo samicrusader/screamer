@@ -1,0 +1,37 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<title>Tuner Status</title>
+<link rel="stylesheet" type="text/css" href="/style.css" />
+</head>
+<body>
+<div class="B C">
+<a href="/"><div class="T">Screamer {{ version }}</div></a>
+<div class="S">Tuner Status</div>
+<ul>
+<li><a href="/tuners.html">Summary</a></li>
+{% for tuner in tuners %}
+<li><a href="/tuners.html?page=tuner{{ tuner['id'] }}">Tuner {{ tuner['id'] }}</a></li>
+{% endfor %}
+</ul>
+</div>
+<div class="B C" style="background: #c0c0c0">
+{% if summary %}
+<div class="T">Summary</div>
+<table>
+{% for tuner in tuners %}
+<tr><td>Tuner {{ tuner['id'] }} Channel</td><td>{{ tuner['channel_num'] }} {{ tuner['channel_name'] }}</td></tr>
+{% endfor %}
+</table>
+{% else %}
+<div class="T">Tuner {{ tuner['id'] }} Status</div>
+<table>
+<tr><td>Virtual Channel</td><td>{{ tuner['channel_num'] }} {{ tuner['channel_name'] }}</td></tr>
+<tr class="L"><td colspan="2"></td></tr>
+<tr><td>Streaming Rate</td><td>{{ tuner['mbps'] }} Mbps</td></tr>
+<tr><td>IP address</td><td>{{ tuner['host'] }} Mbps</td></tr>
+</table>
+{% endif %}
+</div>
+</body>
+</html>

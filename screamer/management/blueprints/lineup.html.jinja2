@@ -1,0 +1,257 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+	<title>Channel Lineup</title>
+	<link rel="stylesheet" type="text/css" href="/style.css" />
+	<style type="text/css">
+		.C {width: 24em;}
+		#overlay { position: fixed; background-color: rgba(0, 0, 0, 0.75); }
+		#player { margin: auto; position: absolute; }
+		#networkOpt { margin-top: 1em; }
+		#overlay, #player { top: 0px; right: 0px; left: 0px; bottom: 0px; }
+		.hidden { display: none !important; }
+		.S { position: relative; }
+		#scanProgress { position: absolute; top: 0; left: 0; background: rgba(255, 255, 0, 0.5); width: 0%; height: 100%;}
+		td:first-child { width: 1%; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
+		td:nth-child(2n) { width: 1%; text-align: right; padding-right: 1em; }
+		td:last-child { white-space: nowrap; padding: 0; }
+	</style>
+</head>
+<body>
+	<div class="B C">
+		<a href="/"><div class="T">Screamer {{ version }}</div></a>
+		<div class="S">Channel Lineup<div id="scanProgress"></div></div>
+		<div align="center" id="scanStatus"></div>
+	</div>
+	<div class="B C" style="background: #ccc">
+		<div class="T" id="channelBanner">Channels</div>
+		<table id="channelTable"></table>
+	</div>
+	<div class="hidden" id="overlay">
+		<embed type="video/mpeg" width="640" height="480" controls="false" toolbar="false" id="player" />
+	</div>
+	<svg class="hidden">
+		<symbol id="icon_hd">
+			<path fill="#999" d="m2.05-0.006c-1.1292 0-2.05 0.9116-2.05 2.04v9.9199c0 1.1288 0.92073 2.0401 2.05 2.0401h17.99c1.1296 0 2.04-0.9113 2.04-2.0401v-9.92c0-1.1284-0.91046-2.04-2.04-2.04z" />
+			<path fill="#fff" d="m1.9384 2.194v9.9082h1.9805v-4.34h3.9805v4.3399h1.9902v-9.9079h-1.9903v4.0097h-3.9805v-4.0097zm10.051 0v9.9082h2.7129c3.0388 0 5.7188-1.0197 5.7188-4.9532s-2.6797-4.955-5.7188-4.955zm1.9902 1.5683h1.1055c1.6612 0 3.2656 1.2276 3.2656 3.3867 0 2.1592-1.6046 3.3965-3.2656 3.3965h-1.1055z" />
+		</symbol>
+		<symbol id="icon_drm">
+			<path fill="#999" d="m2.0935-0.006c-1.1598 0-2.0935 1-2.0935 2.1v9.8127c0 1.159 0.93375 2.093 2.0935 2.093h31.652c1.1598 0 2.0935-0.9338 2.0935-2.0936v-9.8126c0-1.1598-0.93375-2.0935-2.0935-2.0935z" />
+			<path fill="#fff" d="m1.9387 2.194v9.9082h2.7129c3.039 0 5.7188-1.0196 5.7188-4.9531s-2.6798-4.9551-5.7188-4.9551zm10.111 0v9.9082h1.9902v-3.7615h2.3359l2.2031 3.7617h2.2363l-2.574-4.162c0.30144-0.075 0.58223-0.1921 0.83984-0.3515 0.25762-0.1641 0.47769-0.3664 0.66406-0.6055 0.18639-0.2391 0.33334-0.5117 0.4375-0.8164 0.10417-0.3094 0.15625-0.6491 0.15625-1.0195 0-0.4548-0.0747-0.8617-0.22265-1.2227-0.142-0.3654-0.362-0.6763-0.658-0.9295-0.296-0.2578-0.665-0.4539-1.109-0.5898-0.444-0.1407-0.963-0.211-1.555-0.211zm10.445 0-0.002 9.9082h2.0879v-6.0056c0-0.1829-0.007-0.398-0.0195-0.6465-0.007-0.2485-0.017-0.4859-0.03-0.7109-0.02-0.2626-0.036-0.5289-0.049-0.8008l0.33985 1.0547 0.13672 0.4355 0.14453 0.4356 0.12695 0.3945c0.0388 0.1219 0.0749 0.2273 0.10742 0.3164l2.0176 5.5273h1.6797l2.0195-5.5273 0.11523-0.3164 0.12696-0.3945 0.13672-0.4356 0.13476-0.4355 0.32031-1.0547-0.0391 0.7246c-0.0129 0.211-0.0229 0.4422-0.0293 0.6953-0.006 0.2532-0.01 0.4992-0.01 0.7383v6.0058h2.0879v-9.908h-3.1348l-1.9707 5.5762-0.0879 0.2403c-0.0324 0.089-0.0652 0.1827-0.0977 0.2812l-0.0957 0.3027-0.0976 0.3008-0.2129 0.7031-0.20507-0.7168-0.1836-0.6113c-0.057-0.211-0.113-0.3898-0.165-0.5351l-2.008-5.5411zm-18.566 1.6h1.1055c1.6612 0 3.2656 1.2256 3.2656 3.3848 0 2.1591-1.6046 3.3984-3.2656 3.3984h-1.1061zm10.111 0.043h2.5488c0.55908 0 0.98956 0.1152 1.291 0.3496 0.30694 0.2344 0.46094 0.5932 0.46094 1.0762 0 0.2203-0.0361 0.4226-0.10743 0.6054-0.0658 0.1829-0.16764 0.3426-0.30468 0.4785-0.13705 0.1313-0.31162 0.2336-0.52539 0.3086-0.21375 0.071-0.46965 0.1055-0.76563 0.1055h-2.5976z" />
+		</symbol>
+		<symbol id="icon_h264">
+			<path fill="#999" d="m2.0935-0.006c-1.1598 0-2.0935 1-2.0935 2.1v9.8127c0 1.159 0.93375 2.093 2.0935 2.093h31.652c1.1598 0 2.0935-0.9338 2.0935-2.0936v-9.8126c0-1.1598-0.93375-2.0935-2.0935-2.0935z" />
+			<path fill="#fff" d="m28.594 2.1934c-0.911 0-1.704 0.118-2.377 0.3535-0.674 0.2308-1.231 0.564-1.674 0.998-0.437 0.4294-0.764 0.9504-0.982 1.5645-0.213 0.6141-0.319 1.3026-0.319 2.0644 0 0.7341 0.106 1.4106 0.319 2.0293 0.218 0.6187 0.552 1.1529 1.001 1.6059 0.45 0.447 1.014 0.798 1.694 1.052 0.686 0.25 1.496 0.375 2.432 0.375 0.717 0 1.34-0.079 1.871-0.236 0.53-0.162 0.984-0.37 1.365-0.629 0.387-0.258 0.709-0.557 0.965-0.894 0.255-0.337 0.461-0.6808 0.617-1.0317l-1.965-0.6719c-0.1 0.2263-0.225 0.4503-0.375 0.6719s-0.34 0.4203-0.57 0.5957c-0.225 0.175-0.493 0.319-0.805 0.43-0.312 0.106-0.679 0.158-1.103 0.158-0.562 0-1.043-0.085-1.442-0.256s-0.727-0.4081-0.982-0.7128c-0.256-0.3048-0.446-0.6678-0.571-1.0879-0.118-0.4248-0.177-0.8906-0.177-1.3985 0-0.5125 0.059-0.9738 0.177-1.3847 0.125-0.4156 0.313-0.7709 0.563-1.0664 0.256-0.2955 0.58-0.5227 0.973-0.6797 0.392-0.1616 0.863-0.2422 1.412-0.2422 0.386 0 0.733 0.0463 1.039 0.1387 0.305 0.0877 0.57 0.2057 0.795 0.3535 0.23 0.1477 0.42 0.3178 0.57 0.5117 0.15 0.1893 0.259 0.3879 0.328 0.5957l1.992-0.4922c-0.143-0.3971-0.344-0.7581-0.599-1.0859-0.25-0.3325-0.567-0.6193-0.954-0.8594-0.38-0.2447-0.837-0.4345-1.367-0.5684s-1.146-0.2011-1.851-0.2011zm-22.322 0.1464l-3.9375 9.7582h2.2637l0.955-2.4945h4.1153l0.955 2.4945h2.244l-3.9275-9.7582h-2.668zm5.9515 0l4.004 9.7582h2.291l3.976-9.7582h-2.348l-2.216 6.2676-0.207 0.6504c-0.069 0.2216-0.128 0.4203-0.178 0.5957-0.062 0.2075-0.118 0.4065-0.168 0.5955-0.05-0.194-0.106-0.397-0.168-0.6092l-0.188-0.5957-0.205-0.6367-2.226-6.2676h-2.367zm-4.6136 1.502c0 0.0092 0.0141 0.0588 0.039 0.1465l0.1114 0.3379c0.0436 0.1339 0.0942 0.2817 0.1504 0.4433l0.1855 0.4922 1.0664 2.8047h-3.1055l1.0664-2.8047 0.1875-0.4922c0.0562-0.1616 0.1068-0.3094 0.1504-0.4433 0.0437-0.1339 0.0767-0.2443 0.1016-0.3321 0.0249-0.0877 0.0406-0.1385 0.0469-0.1523z" />
+		</symbol>
+		<symbol id="icon_hevc">
+			<path fill="#999" d="M 2.6056735,-0.006 C 1.1621293,-0.006 0,0.994 0,2.094 v 9.8127 c 0,1.159 1.1621913,2.093 2.6056735,2.093 H 42.001314 c 1.443544,0 2.605673,-0.9338 2.605673,-2.0936 V 2.0935 C 44.606987,0.9337 43.444796,0 42.001314,0 Z" />
+			<path fill="#fff" d="m 12.041987,2.34 v 9.908 c 2.589917,0.0066 4.460051,0.02277 7.049826,0 V 10.69 h -5.06015 V 8.073 h 5.06015 V 6.515 h -5.06015 V 3.898 h 5.06015 V 2.3402 Z m -10.0499996,0 v 9.9082 h 1.9805 V 7.9082002 H 7.9529875 V 12.248 l 1.9902002,1e-4 V 2.3402 H 7.9528874 v 4.0097001 h -3.9805 V 2.3402 Z M 37.361987,2.1934 c -0.911,0 -1.704,0.118 -2.377,0.3535 -0.674,0.2308 -1.231,0.564 -1.674,0.998 -0.437,0.4294 -0.764,0.9504 -0.982,1.5645 -0.213,0.6141 -0.319,1.3026 -0.319,2.0644 0,0.7341 0.106,1.4106 0.319,2.0293 0.218,0.6187 0.552,1.1529 1.001,1.6059 0.45,0.447 1.014,0.798 1.694,1.052 0.686,0.25 1.496,0.375 2.432,0.375 0.717,0 1.34,-0.079 1.871,-0.236 0.53,-0.162 0.984,-0.37 1.365,-0.629 0.387,-0.258 0.709,-0.557 0.965,-0.894 0.255,-0.337 0.461,-0.6808 0.617,-1.0317 l -1.965,-0.6719 c -0.1,0.2263 -0.225,0.4503 -0.375,0.6719 -0.15,0.2216 -0.34,0.4203 -0.57,0.5957 -0.225,0.175 -0.493,0.319 -0.805,0.43 -0.312,0.106 -0.679,0.158 -1.103,0.158 -0.562,0 -1.043,-0.085 -1.442,-0.256 -0.399,-0.171 -0.727,-0.4081 -0.982,-0.7128 -0.256,-0.3048 -0.446,-0.6678 -0.571,-1.0879 -0.118,-0.4248 -0.177,-0.8906 -0.177,-1.3985 0,-0.5125 0.059,-0.9738 0.177,-1.3847 0.125,-0.4156 0.313,-0.7709 0.563,-1.0664 0.256,-0.2955 0.58,-0.5227 0.973,-0.6797 0.392,-0.1616 0.863,-0.2422 1.412,-0.2422 0.386,0 0.733,0.0463 1.039,0.1387 0.305,0.0877 0.57,0.2057 0.795,0.3535 0.23,0.1477 0.42,0.3178 0.57,0.5117 0.15,0.1893 0.259,0.3879 0.328,0.5957 l 1.992,-0.4922 c -0.143,-0.3971 -0.344,-0.7581 -0.599,-1.0859 -0.25,-0.3325 -0.567,-0.6193 -0.954,-0.8594 -0.38,-0.2447 -0.837,-0.4345 -1.367,-0.5684 -0.53,-0.1339 -1.146,-0.2011 -1.851,-0.2011 z m -16.3705,0.1466 4.004,9.758 h 2.291 l 3.976,-9.7582 h -2.348 l -2.216,6.2676 -0.207,0.6504 c -0.069,0.2216 -0.128,0.4203 -0.178,0.5957 -0.062,0.2075 -0.118,0.4065 -0.168,0.5955 -0.05,-0.194 -0.106,-0.397 -0.168,-0.6092 l -0.188,-0.5957 -0.205,-0.6367 -2.226,-6.2676 z" />
+		</symbol>
+		<symbol id="icon_star">
+			<path stroke-linejoin="round" stroke="#888" stroke-linecap="round" stroke-width=".54834" d="m7.3602 0 2.2745 4.6085 5.0853 0.739-3.68 3.5873 0.869 5.0652-4.5488-2.391-4.5488 2.391 0.8687-5.0652-3.6801-3.5873 5.0858-0.739z" />
+		</symbol>
+		<symbol id="icon_disabled">
+			<path d="m1.9743 0.46114 5.0167 5.0168 5.017-5.0168 1.531 1.5312-5.0169 5.0167 5.0169 5.017-1.513 1.513-5.017-5.0169-5.0167 5.0169-1.5312-1.531 5.0168-5.017-5.0168-5.0167z" stroke="#800" stroke-width=".65215px" fill="#f00" />
+		</symbol>
+	</svg>
+	<script type="text/javascript" src="/player.js"></script>
+	<script type="text/javascript">
+"use strict";
+
+var statusIcons = {
+	'DRM=1':'<svg width="40px" height="15px"><use xlink:href="#icon_drm"></svg>',
+	'VideoCodec=H264':'<svg width="40px" height="15px"><use xlink:href="#icon_h264"></svg>',
+	'VideoCodec=HEVC':'<svg width="50px" height="15px"><use xlink:href="#icon_hevc"></svg>',
+	'HD=1':'<svg width="25px" height="15px"><use xlink:href="#icon_hd"></svg>',
+}
+
+var favIcons = {
+	'star':'<svg width="20px" height="15px"><use xlink:href="#icon_star" fill="#ff0"></svg>',
+	'unstar':'<svg width="20px" height="15px"><use xlink:href="#icon_star" fill="#ccc"></svg>',
+	'disabled':'<svg width="20px" height="15px"><use xlink:href="#icon_disabled"></svg>',
+}
+
+var found = -1;
+function ScanButton(scan)
+{
+	var url = "/lineup.post?scan=" + scan;
+	var xmlhttp = new XMLHttpRequest();
+	var source = document.getElementById('source');
+	if (source != undefined) {
+		url += "&source=" + source.options[source.selectedIndex].innerHTML;
+	}
+	xmlhttp.onreadystatechange = function () {
+		if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+			loadPage();
+		}
+	}
+	xmlhttp.open("POST", url, true);
+	xmlhttp.send();
+	return false;
+}
+
+function NetworkIDChange()
+{
+	var network = document.getElementById('network');
+	var url = "/lineup.post?NetworkID=" + network.options[network.selectedIndex].innerHTML;
+	var xmlhttp = new XMLHttpRequest();
+	xmlhttp.onreadystatechange = function () {
+		if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+			loadChannels();
+		}
+	}
+	xmlhttp.open("POST", url, true);
+	xmlhttp.send();
+	return false;
+}
+
+function loadPage()
+{
+	var xmlhttp = new XMLHttpRequest()
+	xmlhttp.onreadystatechange = function () {
+		if (xmlhttp.readyState != 4 || xmlhttp.status != 200) return;
+
+		var scan = JSON.parse(xmlhttp.responseText);
+		var scanStatus = document.getElementById('scanStatus');
+		if (found != scan.Found) {
+			loadChannels();
+			found = scan.Found;
+		}
+		var progress = document.getElementById('scanProgress').style;
+		progress.visibility="hidden";
+		if (scan.ScanInProgress) {
+			scanStatus.innerHTML = '<div>Found ' + scan.Found + ' programs (' + scan.Progress + '%)</div>';
+			scanStatus.innerHTML += '<button onclick="ScanButton(\'abort\')">Stop Channel Detection</button>';
+			progress.width = scan.Progress + '%';
+			progress.visibility="";
+			setTimeout('loadPage()', 1000);
+		} else if (scan.ScanPossible) {
+			scanStatus.innerHTML = '<button onclick="ScanButton(\'start\')">Detect Channels</button>';
+
+			var source = document.createElement('select');
+			source.id="source";
+			for (var i = 0; i < scan.SourceList.length; i++) {
+				var option = document.createElement('option');
+				if (scan.SourceList[i] == scan.Source) {
+					option.setAttribute("selected","selected");
+				}
+				option.innerHTML = scan.SourceList[i];
+				source.appendChild(option);
+			}
+			if (scan.SourceList.length < 2) {
+				source.style.display="none";
+			}
+			scanStatus.appendChild(source);
+
+			if (scan.NetworkIDList) {
+				var networkOpt = document.createElement('div');
+				networkOpt.id="networkOpt";
+				networkOpt.innerHTML = "Network ID: ";
+				var network = document.createElement('select');
+				network.id="network";
+				for (var i = 0; i < scan.NetworkIDList.length; i++) {
+					var option = document.createElement('option');
+					if (scan.NetworkIDList[i] == scan.NetworkID) {
+						option.setAttribute("selected","selected");
+					}
+					option.innerHTML = scan.NetworkIDList[i];
+					network.appendChild(option);
+				}
+				if (scan.NetworkIDList.length < 2) {
+					networkOpt.style.display="none";
+				}
+				network.onchange = NetworkIDChange;
+				networkOpt.appendChild(network);
+				scanStatus.appendChild(networkOpt);
+			}
+		} else {
+			scanStatus.innerHTML = '';
+		}
+	}
+	xmlhttp.open("GET","/lineup_status.json",true);
+	xmlhttp.send();
+}
+
+function loadChannels()
+{
+	var xmlhttp = new XMLHttpRequest();
+	xmlhttp.onreadystatechange = function () {
+		if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+			var channels = JSON.parse(xmlhttp.responseText);
+			var banner = document.getElementById('channelBanner');
+			banner.innerHTML = 'Channels (' + channels.length + ')';
+			var table = document.getElementById('channelTable');
+			table.innerHTML = '';
+			for(var i = 0; i < channels.length; i++) {
+				var row = document.createElement('tr');
+				var numberCell = document.createElement('td');
+				var nameCell = document.createElement('td');
+				var favCell = document.createElement('td');
+				if (channels[i].Subscribed == 0) {
+					numberCell.innerHTML=channels[i].GuideNumber;
+					nameCell.innerHTML=channels[i].GuideName;
+					row.style.cssText="text-decoration: line-through;";
+				} else {
+					if (channels[i].Enabled == 0) {
+						favCell.favStatus = 2;
+					} else if (channels[i].Favorite == 1) {
+						favCell.favStatus = 1;
+					} else {
+						favCell.favStatus = 0;
+					}
+					favCell.innerHTML = favIcons[["unstar","star","disabled"][favCell.favStatus]];
+					favCell.GuideNumber = channels[i].GuideNumber.toString();
+					favCell.Demo = channels[i].Demo;
+					if (favCell.addEventListener) {
+						favCell.addEventListener('click', toggleStar);
+					} else {
+						favCell.attachEvent('onclick', toggleStar);
+					}
+					var link = document.createElement('a');
+					link.setAttribute("href",channels[i].URL);
+					link.innerHTML=channels[i].GuideNumber;
+					if (document.hasplayer && channels[i].DRM != 1) {
+						link.setAttribute("onclick","play("+channels[i].GuideNumber+"); return false;");
+					}
+					numberCell.appendChild(link);
+					nameCell.innerHTML=channels[i].GuideName;
+				}
+				row.appendChild(favCell);
+				row.appendChild(numberCell);
+				row.appendChild(nameCell);
+				if (channels[i].Subscribed != 0) {
+					var statusCell = document.createElement('td');
+					for (var status in channels[i]) {
+						var lookup = status+'='+channels[i][status];
+						if (!statusIcons[lookup]) continue;
+						statusCell.innerHTML += statusIcons[lookup];
+					}
+					row.appendChild(statusCell);
+				}
+				table.appendChild(row);
+			}
+		}
+	}
+	xmlhttp.open("GET", "/lineup.json" + (window.location.search || "?show=found"), true);
+	xmlhttp.send();
+}
+
+function toggleStar(e)
+{
+	var obj = this;
+	obj.favStatus = (obj.favStatus + 1) % 3;
+	if (obj.Demo && (obj.favStatus == 1)) obj.favStatus++;
+	obj.innerHTML = favIcons[["unstar","star","disabled"][obj.favStatus]];
+	postSetFav("-+x"[obj.favStatus] + obj.GuideNumber);
+}
+
+function postSetFav(value)
+{
+	var xmlhttp = new XMLHttpRequest();
+	xmlhttp.open("POST","/lineup.post?favorite=" + value, true);
+	xmlhttp.send();
+}
+loadPage();
+	</script>
+</body>
+</html>

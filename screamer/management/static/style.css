@@ -1,0 +1,20 @@
+html { width:100%; height: 100%;}
+body {background: black;font-family: sans-serif;}
+.B {background: #fff;margin: 9.5em;border: 3px solid #000;box-shadow: 10px 10px 50px #000;display: table}
+.C, .W {margin: auto;margin-top: 1em;padding: 10px;}
+.C {width: 21em;}
+.W {width: 80em;}
+.S, .T {color: #fff;margin: -10px -10px 10px -10px;}
+.S {background: #393;padding: 2px 20px;font-size: 0.8em;}
+.T {background: #000;padding-left: 20px;font-weight: 700;}
+.TE {background: #a00;}
+.BE {background: #f00;color: #fff;border-color:#a00;}
+a {text-decoration: none;}
+a:hover {text-decoration: underline;}
+a,a:visited {color: #00f;}
+table {width: inherit;}
+td img {margin-right:5px;}
+.L * {border-bottom: 1px solid black;}
+td {white-space: nowrap;}
+td:first-child {text-align: center;}
+button { margin-top: 0.25em; }
