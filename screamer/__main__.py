@@ -1,10 +1,12 @@
-import argparse
+# import argparse
+import logging
+import socket
 import os
 import threading
 from flask import Flask
 
 
-def create_mgmt_server():
+def create_http_mgmt_server():
     flask = Flask('screamer_mgmt')
 
     if not os.path.exists(flask.instance_path):
@@ -26,14 +28,37 @@ def create_http_stream_server():
     return flask
 
 
+class CreateUDPBroadcastServer:
+    log = logging.getLogger('udp_broadcast')
+    udp_server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+
+    def run(self, ip: str, port: int):
+        self.udp_server_socket.bind((ip, port))
+        self.log.log(logging.INFO, f'Listening on {ip}:{port}')
+        while True:
+            recv = self.udp_server_socket.recvfrom(1024)
+
+            message = recv[0]
+            address = recv[1]
+            self.log.log(logging.DEBUG, f'Message from Client: {message}')
+            self.log.log(logging.DEBUG, f'Client IP Address: {address}')
+
+            # Sending a reply to client
+            # udp_server_socket.sendto(bytesToSend, address)
+
+
 if __name__ == '__main__':
-    mgmt = create_mgmt_server()
-    stream = create_http_stream_server()
     management_thread = threading.Thread(
-        target=lambda: mgmt.run(host='127.0.0.1', port=8080, use_reloader=False, threaded=True), daemon=True)
+        target=lambda: create_http_mgmt_server().run(host='127.0.0.1', port=8080, use_reloader=False, threaded=True),
+        daemon=True)
     management_thread.start()
     http_stream_thread = threading.Thread(
-        target=lambda: stream.run(host='127.0.0.1', port=8081, use_reloader=False, threaded=True), daemon=True)
+        target=lambda: create_http_stream_server().run(host='127.0.0.1', port=5004, use_reloader=False, threaded=True),
+        daemon=True)
     http_stream_thread.start()
-    for thread in [management_thread, http_stream_thread]:
+    broadcast_thread = threading.Thread(
+        target=lambda: CreateUDPBroadcastServer().run(ip='127.0.0.1', port=65001),
+        daemon=True)
+    broadcast_thread.start()
+    for thread in [management_thread, http_stream_thread, broadcast_thread]:
         thread.join()
