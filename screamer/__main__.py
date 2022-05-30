@@ -30,13 +30,15 @@ def create_http_stream_server():
 
 class CreateUDPBroadcastServer:
     log = logging.getLogger('udp_broadcast')
-    udp_server_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+    udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+    udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+    udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
     def run(self, ip: str, port: int):
-        self.udp_server_socket.bind((ip, port))
-        self.log.log(logging.INFO, f'Listening on {ip}:{port}')
+        self.udp_socket.bind((ip, port))
+        self.log.log(logging.INFO, f'Listening on {ip if ip else "*"}:{port}')
         while True:
-            recv = self.udp_server_socket.recvfrom(1024)
+            recv = self.udp_socket.recvfrom(1024)
 
             message = recv[0]
             address = recv[1]
@@ -57,7 +59,7 @@ if __name__ == '__main__':
         daemon=True)
     http_stream_thread.start()
     broadcast_thread = threading.Thread(
-        target=lambda: CreateUDPBroadcastServer().run(ip='127.0.0.1', port=65001),
+        target=lambda: CreateUDPBroadcastServer().run(ip='', port=65001),
         daemon=True)
     broadcast_thread.start()
     for thread in [management_thread, http_stream_thread, broadcast_thread]:
