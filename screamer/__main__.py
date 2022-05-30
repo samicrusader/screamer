@@ -1,10 +1,12 @@
 # import argparse
+from . import logger
 import logging
 import socket
 import os
 import threading
 from flask import Flask
 
+log = logger.setup_custom_logger('root')
 
 def create_http_mgmt_server():
     flask = Flask('screamer_mgmt')
@@ -29,21 +31,20 @@ def create_http_stream_server():
 
 
 class CreateUDPBroadcastServer:
-    log = logging.getLogger('udp_broadcast')
-    udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+    log = logging.getLogger('udp')
+    log.setLevel(logging.DEBUG)
+    udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
     udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
     def run(self, ip: str, port: int):
-        self.udp_socket.bind((ip, port))
         self.log.log(logging.INFO, f'Listening on {ip if ip else "*"}:{port}')
+        self.udp_socket.bind((ip, port))
         while True:
-            recv = self.udp_socket.recvfrom(1024)
+            message, address = self.udp_socket.recvfrom(1460)
 
-            message = recv[0]
-            address = recv[1]
-            self.log.log(logging.DEBUG, f'Message from Client: {message}')
-            self.log.log(logging.DEBUG, f'Client IP Address: {address}')
+            self.log.log(logging.INFO, f'Message from Client: {message}')
+            self.log.log(logging.INFO, f'Client IP Address: {address}')
 
             # Sending a reply to client
             # udp_server_socket.sendto(bytesToSend, address)
