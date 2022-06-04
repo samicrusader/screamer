@@ -27,7 +27,7 @@ def parse(data: bytes):
     """
     header = data[:4]
     payload = data[4:-4]
-    packet_hash = data[-4:]
+    packet_hash = int.from_bytes(data[-4:], 'little')
 
     print(data)
     payload_type = int.from_bytes(header[:2], 'little')
@@ -36,7 +36,8 @@ def parse(data: bytes):
     if not length == len(payload):
         raise ValueError('payload size invalid')
 
-    # TODO: hash
+    if not binascii.crc32(header+payload) == packet_hash:
+        raise ValueError('hash mismatch')
 
     match payload_type:
         case 2:
