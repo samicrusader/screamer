@@ -1,5 +1,6 @@
 # import argparse
 from . import logger
+from .hdhomerun import ssdp
 import logging
 import socket
 import os
@@ -45,6 +46,9 @@ class CreateUDPBroadcastServer:
 
             self.log.log(logging.INFO, f'Message from Client: {message}')
             self.log.log(logging.INFO, f'Client IP Address: {address}')
+            
+            x = ssdp.parse(message)
+            print(x)
 
             # Sending a reply to client
             # udp_server_socket.sendto(bytesToSend, address)
