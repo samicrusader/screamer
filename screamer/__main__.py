@@ -49,6 +49,11 @@ class CreateUDPBroadcastServer:
             
             x = ssdp.parse(message)
             print(x)
+            print(ssdp.discover_request())
+            if x[0] == 'discover_request':
+                self.udp_socket.sendto(ssdp.discover_request(), address)
+            else:
+                print('no workey')
 
             # Sending a reply to client
             # udp_server_socket.sendto(bytesToSend, address)
