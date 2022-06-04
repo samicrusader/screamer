@@ -1,3 +1,5 @@
+import binascii
+
 HDHOMERUN_MAX_PACKET_SIZE = 1460
 HDHOMERUN_MAX_PAYLOAD_SIZE = 1452
 HDHOMERUN_TYPE_DISCOVER_REQ = 0x0002
@@ -28,8 +30,8 @@ def parse(data: bytes):
     packet_hash = data[-4:]
 
     print(data)
-    payload_type = int.from_bytes(header[:2], 'big')
-    length = int.from_bytes(header[2:4], 'big')
+    payload_type = int.from_bytes(header[:2], 'little')
+    length = int.from_bytes(header[2:4], 'little')
 
     if not length == len(payload):
         raise ValueError('payload size invalid')
