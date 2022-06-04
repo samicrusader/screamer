@@ -53,5 +53,21 @@ def parse(data: bytes):
     return packet, payload
 
 
-def create(values: list):
-    pass
+def create(payload_type: str, payload: bytes):
+    match payload_type:
+        case 'discover_request':
+            packet = 2
+        case 'discover_reply':
+            packet = 3
+        case 'getset_request':
+            packet = 4
+        case 'getset_reply':
+            packet = 5
+        case _:
+            raise ValueError('invalid payload type')
+
+    packet = packet.to_bytes(2, 'little')
+    packet += len(payload).to_bytes(2, 'little')
+    packet += payload
+    packet += binascii.crc32(packet).to_bytes(4, 'little')
+    return packet
