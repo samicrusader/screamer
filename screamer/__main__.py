@@ -1,6 +1,6 @@
 # import argparse
 from . import logger
-from .hdhomerun import ssdp
+from .hdhomerun import discover
 import logging
 import socket
 import os
@@ -47,11 +47,11 @@ class CreateUDPBroadcastServer:
             self.log.log(logging.INFO, f'Message from Client: {message}')
             self.log.log(logging.INFO, f'Client IP Address: {address}')
             
-            x = ssdp.parse(message)
+            x = discover.parse(message)
             print(x)
-            print(ssdp.discover_request())
+            print(discover.discover_request())
             if x[0] == 'discover_request':
-                self.udp_socket.sendto(ssdp.discover_request(), address)
+                self.udp_socket.sendto(discover.discover_request(), address)
             else:
                 print('no workey')
 
