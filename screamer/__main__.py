@@ -1,6 +1,7 @@
 # import argparse
 from . import logger
 from .hdhomerun import discover
+from .hdhomerun.packets import parse
 from _thread import start_new_thread
 import logging
 import socket
@@ -49,7 +50,7 @@ class CreateUDPBroadcastServer:
             self.log.log(logging.INFO, f'Client {address} connected.')
             self.log.log(logging.DEBUG, f'Message from Client: {message}')
             
-            x = discover.parse(message)
+            x = parse(message)
             print(x)
             print(discover.discover_request())
             if x[0] == 'discover_request':
@@ -132,5 +133,5 @@ if __name__ == '__main__':
         target=lambda: CreateLLMNRServer().run(ip='', port=5355),
         daemon=True)
     #llmnr_thread.start() # not needed for now
-    for thread in [webgui_thread, http_stream_thread, broadcast_thread, control_thread, llmnr_thread]:
+    for thread in [webgui_thread, http_stream_thread, broadcast_thread, control_thread]:#, llmnr_thread]:
         thread.join()
