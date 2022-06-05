@@ -46,9 +46,8 @@ class CreateUDPBroadcastServer:
         self.udp_socket.bind((ip, port))
         while True:
             message, address = self.udp_socket.recvfrom(1460)
-
-            self.log.log(logging.INFO, f'Message from Client: {message}')
-            self.log.log(logging.INFO, f'Client IP Address: {address}')
+            self.log.log(logging.INFO, f'Client {address} connected.')
+            self.log.log(logging.DEBUG, f'Message from Client: {message}')
             
             x = discover.parse(message)
             print(x)
@@ -74,9 +73,8 @@ class CreateLLMNRServer:
         self.udp_socket.bind((ip, port))
         while True:
             message, address = self.udp_socket.recvfrom(1460)
-
-            self.log.log(logging.INFO, f'Message from Client: {message}')
-            self.log.log(logging.INFO, f'Client IP Address: {address}')
+            self.log.log(logging.INFO, f'Client {address} connected.')
+            self.log.log(logging.DEBUG, f'Message from Client: {message}')
 
 
 class CreateTCPControlServer:
