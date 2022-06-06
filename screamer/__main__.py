@@ -104,7 +104,7 @@ class CreateTCPControlServer:
                 self.log.log(logging.DEBUG, f'Packet payload: {x[1]}')
                 match x[0]:
                     case 'getset_request':
-                        func = control.get_request
+                        func = control.getset
                     case _:
                         self.log.log(logging.INFO, f'Client {address} sent invalid request.')
                         conn.close()
