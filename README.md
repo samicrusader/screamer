@@ -1,3 +1,3 @@
 # Screamer
 
-Current code is in the `develop` branch.
+Full HDHomerun emulator in Python.
