@@ -1,6 +1,6 @@
 # import argparse
 from . import logger
-from .hdhomerun import discover
+from .hdhomerun import control, discover
 from .hdhomerun.packets import parse
 from _thread import start_new_thread
 import logging
@@ -49,14 +49,19 @@ class CreateUDPBroadcastServer:
             message, address = self.udp_socket.recvfrom(1460)
             self.log.log(logging.INFO, f'Client {address} connected.')
             self.log.log(logging.DEBUG, f'Message from Client: {message}')
-            
+
             x = parse(message)
-            print(x)
-            print(discover.discover_request())
-            if x[0] == 'discover_request':
-                self.udp_socket.sendto(discover.discover_request(), address)
-            else:
-                print('no workey')
+            self.log.log(logging.DEBUG, f'Packet type: {x[0]}')
+            self.log.log(logging.DEBUG, f'Packet payload: {x[1]}')
+            match x[0]:
+                case 'discover_request':
+                    func = discover.discover_request
+                case _:
+                    self.log.log(logging.INFO, f'Client {address} sent invalid request.')
+                    break
+
+            self.udp_socket.sendto(func(payload=x[1]), address)
+            break
 
             # Sending a reply to client
             # udp_server_socket.sendto(bytesToSend, address)
@@ -84,18 +89,29 @@ class CreateTCPControlServer:
     tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     tcp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 
-    def handle(self, conn, addr):
+    def handle(self, conn, address):
         while True:
             try:
                 message = conn.recv(1460)
                 if not message:
-                    self.log.log(logging.INFO, f'Client {addr} dropped.')
+                    self.log.log(logging.INFO, f'Client {address} dropped.')
                     break
+
                 self.log.log(logging.DEBUG, f'Message from Client: {message}')
-                conn.send(b'testmsg')
+                x = parse(message)
+                self.log.log(logging.DEBUG, f'Packet type: {x[0]}')
+                self.log.log(logging.DEBUG, f'Packet payload: {x[1]}')
+                match x[0]:
+                    case 'getset_request':
+                        func = control.get_request
+                    case _:
+                        self.log.log(logging.INFO, f'Client {address} sent invalid request.')
+                        conn.close()
+
+                conn.send(func(payload=x[1]))
                 conn.close()
-            except OSError as e:
-                self.log.log(logging.INFO, f'Client {addr} dropped.')
+            except OSError:
+                self.log.log(logging.INFO, f'Client {address} dropped.')
                 break
 
     def run(self, ip: str, port: int):
