@@ -26,4 +26,116 @@ HDHOMERUN_TAG_BASE_URL = 0x2A
 HDHOMERUN_TAG_DEVICE_AUTH_STR = 0x2B
 HDHOMERUN_DEVICE_TYPE_WILDCARD = 0xFFFFFFFF
 HDHOMERUN_DEVICE_TYPE_TUNER = 0x00000001
-HDHOMERUN_DEVICE_ID_WILDCARD = 0xFFFFFFFFn
+HDHOMERUN_DEVICE_ID_WILDCARD = 0xFFFFFFFF
+
+/hdd/debug (HDD)
+/hdd/identify (HDD)
+/hdd/smart (HDD)
+/hdd/status (HDD)
+/lineup/scan
+/sys/boot <config> (TECH)
+/sys/copyright
+/sys/debug
+/sys/features
+/sys/ipaddr dhcp|"<ip> <mask> <gw> <dns>" (TECH)
+/sys/hwmodel
+/sys/model
+/sys/restart <resource>
+/sys/version
+/tuner<n>/channel <modulation>:<freq|ch>
+/tuner<n>/channelmap <channelmap>
+/tuner<n>/debug
+/tuner<n>/filter "0x<nnnn>-0x<nnnn> [...]"
+/tuner<n>/lockkey
+/tuner<n>/program <program number>
+/tuner<n>/status
+/tuner<n>/plotsample (TECH)
+/tuner<n>/plpinfo
+/tuner<n>/streaminfo
+/tuner<n>/target <ip>:<port>
+/tuner<n>/vchannel <vchannel>
+
+TECH*-US: 1004xxxx - hdhomerun4_tech_atsc
+TECH*-EU: 1203xxxx
+HDHR-US: 101xxxxx
+HDHR-T1-US: 102xxxxx
+HDHR3-US: 103xxxxx - hdhomerun3_atsc
+HDHR4-2US: 104xxxxx - hdhomerun4_atsc
+HDHR5-4US: 107xxxxx - hdhomerun5_atsc
+HDHR5-2US: 106xxxxx - hdhomerun5_atsc
+HDVR-2US-1TB: 151xxxxx - hdhomerun_dvr_atsc
+
+[spinnaker@kanna tsdf]$ hdhomerun_config FFFFFFFF get /sys/boot
+/tuner0/channelmap us-bcast
+/tuner0/vchannel 42.2/tuner0/program 2
+/tuner0/target rtp://239.255.1.1:59001 ttl=8
+/tuner1/channelmap us-bcast
+/tuner1/vchannel 42.2
+/tuner1/program 2
+/tuner1/target rtp://239.255.1.2:59002 ttl=8
+[spinnaker@kanna tsdf]$ hdhomerun_config FFFFFFFF get /sys/ipaddr
+<ip> 255.255.254.0 <subnet> 0.0.0.0
+
+[spinnaker@kanna tsdf]$ hdhomerun_config FFFFFFFF get /sys/copyright
+Copyright © 2005-2021 Silicondust USA Inc. <www.silicondust.com>. All rights reserved.
+[spinnaker@kanna tsdf]$ hdhomerun_config FFFFFFFF get /sys/debug
+env: hdt=34 (HDD only)
+mem: ddr=128 nbk=1 dmk=341 fet=0
+loop: pkt=2
+t0: pt=12 cal=-5465
+t1: pt=12 cal=-5465
+t2: pt=12 cal=-5465
+t3: pt=12 cal=-5490
+eth: link=100f
+
+[spinnaker@kanna tsdf]$ hdhomerun_config FFFFFFFF get /sys/features
+channelmap: us-bcast us-cable us-hrc us-irc kr-bcast kr-cable
+modulation: 8vsb qam256 qam64
+auto-modulation: auto auto6t auto6c qam
+record (HDD only)
+
+[spinnaker@kanna tsdf]$ hdhomerun_config FFFFFFFF get /sys/hwmodel
+HDHR5-4US
+[spinnaker@kanna tsdf]$ hdhomerun_config FFFFFFFF get /sys/model
+hdhomerun5_atsc
+[spinnaker@kanna tsdf]$ hdhomerun_config FFFFFFFF get /sys/version
+20220203
+
+[spinnaker@kanna tsdf]$ hdhomerun_config FFFFFFFF get /hdd/debug
+state=normal-blank capacity=1000 recorded=0 free=1000
+[spinnaker@kanna tsdf]$ hdhomerun_config FFFFFFFF get /hdd/identify
+model: ST1000VT001-1RE172
+serial: <redacted>
+sectors: 1953525168
+capacity: 1000GB
+
+[spinnaker@kanna tsdf]$ hdhomerun_config FFFFFFFF get /hdd/smart
+smart: pass
+ID# NAME                    RAW     VAL WST THR
+  1 Raw_Read_Error_Rate     1003977 100 100   6
+  3 Spin_Up_Time                  0 100 100   0
+  4 Start_Stop_Count             11 100 100  20
+  5 Reallocated_Sector_Ct         0 100 100  10
+  7 Seek_Error_Rate            1109 100 253  45
+  9 Power_On_Hours             5803  94  94   0
+ 10 Spin_Retry_Count              0 100 100  97
+ 12 Power_Cycle_Count             5 100 100  20
+184 End-to-End_Error              0 100 100  99
+187 Reported_Uncorrect            0 100 100   0
+188 Command_Timeout               0 100 100   0
+189 High_Fly_Writes               0 100 100   0
+190 Airflow_Temperature_Cel      33  67  61  40
+191 G-Sense_Error_Rate            1 100 100   0
+192 Power-Off_Retract_Count       1 100 100   0
+193 Load_Cycle_Count             13 100 100   0
+194 Temperature_Celsius          33  33  40   0
+197 Current_Pending_Sector        0 100 100   0
+198 Offline_Uncorrectable         0 100 100   0
+199 UDMA_CRC_Error_Count          0 200 200   0
+240 Head_Flying_Hours          5803 100 253   0
+241 Total_LBAs_Written       995544 100 253   0
+242 Total_LBAs_Read            8433 100 253   0
+254 Free_Fall_Sensor              0 100 100   0
+
+[spinnaker@kanna tsdf]$ hdhomerun_config FFFFFFFF get /hdd/status
+state=normal capacity=1000 recorded=0 free=1000
