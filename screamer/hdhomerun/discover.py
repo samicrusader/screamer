@@ -3,7 +3,7 @@ from .packets import create
 def discover_request(payload: bytes):
     payload = 0x02.to_bytes(1, 'big')  # HDHOMERUN_TAG_DEVICE_ID
     payload += 0x04.to_bytes(1, 'big')
-    payload += b'\x5b\xc2\x44\xce'  # device id
+    payload += b'\x10\x10\xc0\x32'  # device id
 
     payload += 0x01.to_bytes(1, 'big')  # HDHOMERUN_TAG_DEVICE_TYPE
     payload += 0x04.to_bytes(1, 'big')
