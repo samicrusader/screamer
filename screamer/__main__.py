@@ -60,8 +60,9 @@ class CreateUDPBroadcastServer:
                     self.log.log(logging.INFO, f'Client {address} sent invalid request.')
                     break
 
-            self.udp_socket.sendto(func(payload=x[1]), address)
-            break
+            data = func(payload=x[1])
+            self.udp_socket.sendto(data, address)
+            self.log.log(logging.DEBUG, f'Sent back {data}')
 
             # Sending a reply to client
             # udp_server_socket.sendto(bytesToSend, address)
@@ -107,9 +108,9 @@ class CreateTCPControlServer:
                     case _:
                         self.log.log(logging.INFO, f'Client {address} sent invalid request.')
                         conn.close()
-
-                conn.send(func(payload=x[1]))
-                conn.close()
+                data = func(payload=x[1])
+                conn.send(data)
+                self.log.log(logging.DEBUG, f'Sent back {data}')
             except OSError:
                 self.log.log(logging.INFO, f'Client {address} dropped.')
                 break
@@ -129,22 +130,22 @@ if __name__ == '__main__':
         target=lambda: create_http_mgmt_server().run(host='127.0.0.1', port=8080, use_reloader=False, threaded=True),
         daemon=True)
     webgui_thread.start()
-    time.sleep(1)
+    #time.sleep(1)
     http_stream_thread = threading.Thread(
         target=lambda: create_http_stream_server().run(host='127.0.0.1', port=5004, use_reloader=False, threaded=True),
         daemon=True)
     http_stream_thread.start()
-    time.sleep(1)
+    #time.sleep(1)
     broadcast_thread = threading.Thread(
         target=lambda: CreateUDPBroadcastServer().run(ip='', port=65001),
         daemon=True)
     broadcast_thread.start()
-    time.sleep(1)
+    #time.sleep(1)
     control_thread = threading.Thread(
         target=lambda: CreateTCPControlServer().run(ip='', port=65001),
         daemon=True)
     control_thread.start()
-    time.sleep(1)
+    #time.sleep(1)
     llmnr_thread = threading.Thread(
         target=lambda: CreateLLMNRServer().run(ip='', port=5355),
         daemon=True)

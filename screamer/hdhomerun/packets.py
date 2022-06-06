@@ -9,12 +9,9 @@ def parse(data: bytes):
     payload = data[4:-4]
     packet_hash = int.from_bytes(data[-4:], 'little')
 
-    print(data)
     payload_type = int.from_bytes(header[:2], 'big')
     length = int.from_bytes(header[2:4], 'big')
 
-    print(length)
-    print(len(payload))
     if not length == len(payload):
         raise ValueError('payload size invalid')
 
