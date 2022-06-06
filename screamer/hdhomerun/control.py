@@ -14,7 +14,7 @@ def get_request(payload: bytes):
     key = payload.split(b'\x03\x0b')[1].split(b'\x00')[0].decode()
     match key:
         case '/sys/model':
-            value = 'hdhomerun'
+            value = 'hdhomerun_atsc'  # https://www.silicondust.com/support/linux/
         case _:
             raise ValueError('invalid key')
 
