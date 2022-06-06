@@ -9,15 +9,11 @@ import math
 
 def getset(payload: bytes):
     key_length = (int.from_bytes(payload[1:2], 'little'))
-    print(f'key length: {key_length}')
     key = payload[2:(key_length+1)].decode()
-    print(f'key: {key}')
     newvalue = None
     if payload.split(key.encode())[1]:
         newvalue_length = int.from_bytes(payload[(key_length+3):(key_length+4)], 'little')
-        print(f'value length: {newvalue_length}')
         newvalue = payload[(key_length+4):(key_length+3+newvalue_length)].decode()
-        print(f'value: {newvalue}')
     match key:
         case '/sys/model':
             value = 'hdhomerun_atsc'  # https://www.silicondust.com/support/linux/
@@ -39,10 +35,9 @@ def getset(payload: bytes):
     if math.ceil((value_length / 236)) > 1:  # if our length is over 236 bytes
         value_length_bytes = 0xec.to_bytes(1, 'little')  # we have to split it by 236 and indicate it
         value_length_bytes += math.ceil((value_length / 236)).to_bytes(1, 'little')  # by (length / 236) rounded up
-    else: # otherwise
-        value_length_bytes = value_length.to_bytes(1, 'little') # just send the length
+    else:  # otherwise
+        value_length_bytes = value_length.to_bytes(1, 'little')  # just send the length
     new_payload += value_length_bytes
     new_payload += value.encode()
     new_payload += 0x00.to_bytes(1, 'big')  # null terminator
     return create('getset_reply', new_payload)
-

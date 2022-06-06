@@ -6,7 +6,6 @@ from _thread import start_new_thread
 import logging
 import socket
 import os
-import time
 import threading
 from flask import Flask
 
@@ -130,22 +129,18 @@ if __name__ == '__main__':
         target=lambda: create_http_mgmt_server().run(host='127.0.0.1', port=8080, use_reloader=False, threaded=True),
         daemon=True)
     webgui_thread.start()
-    #time.sleep(1)
     http_stream_thread = threading.Thread(
         target=lambda: create_http_stream_server().run(host='127.0.0.1', port=5004, use_reloader=False, threaded=True),
         daemon=True)
     http_stream_thread.start()
-    #time.sleep(1)
     broadcast_thread = threading.Thread(
         target=lambda: CreateUDPBroadcastServer().run(ip='', port=65001),
         daemon=True)
     broadcast_thread.start()
-    #time.sleep(1)
     control_thread = threading.Thread(
         target=lambda: CreateTCPControlServer().run(ip='', port=65001),
         daemon=True)
     control_thread.start()
-    #time.sleep(1)
     llmnr_thread = threading.Thread(
         target=lambda: CreateLLMNRServer().run(ip='', port=5355),
         daemon=True)
