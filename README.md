@@ -1,3 +1,3 @@
 # Screamer
 
-Full HDHomerun emulator in Python.
+(Work in progress) Full HDHomerun emulator in Python.
