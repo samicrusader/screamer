@@ -1,6 +1,6 @@
 from .packets import create
 
-def discover_request():
+def discover_request(payload: bytes):
     payload = 0x02.to_bytes(1, 'big') # HDHOMERUN_TAG_DEVICE_ID
     payload += 0x04.to_bytes(1, 'big')
     payload += b'\x5b\xc2\x44\xce'  # device id
