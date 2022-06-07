@@ -4,6 +4,10 @@ import re
 
 
 def getset(payload: bytes, config: dict):
+    try:
+        tuners = int(re.findall(r'\d+', config['device']['hwmodel'].split('-')[-1])[0])
+    except IndexError:
+        tuners = 1
     key_length = (int.from_bytes(payload[1:2], 'little'))
     key = payload[2:(key_length+1)].decode()
     newvalue = None
@@ -12,6 +16,7 @@ def getset(payload: bytes, config: dict):
         newvalue = payload[(key_length+4):(key_length+3+newvalue_length)].decode()
     match key:
         case '/lineup/scan':
+            value = 'state=failed progress=100% found=119'
             value = 'state=complete progress=100% found=71'
         case '/sys/copyright':
             value = 'HDHomerun is copyright of SiliconDust.\nThis program was created using clean-room reverse engineering of both libhdhomerun and actual HDHomerun units.\nhttps://github.com/samicrusader/screamer\n'
@@ -29,8 +34,6 @@ def getset(payload: bytes, config: dict):
             value = 'Supported configuration options:\n/lineup/scan\n/sys/copyright\n/sys/debug\n/sys/features\n/sys/hwmodel\n/sys/model\n/sys/restart <resource>\n/sys/version\n/tuner<n>/channel <modulation>:<freq|ch>\n/tuner<n>/channelmap <channelmap>\n/tuner<n>/debug\n/tuner<n>/filter "0x<nnnn>-0x<nnnn> [...]"\n/tuner<n>/lockkey\n/tuner<n>/program <program number>\n/tuner<n>/status\n/tuner<n>/plpinfo\n/tuner<n>/streaminfo\n/tuner<n>/target <ip>:<port>\n/tuner<n>/vchannel <vchannel>\n'
         case _:
             if key.startswith('/tuner'):
-                try: tuners = int(re.findall(r'\d+', config['device']['hwmodel'].split('-')[-1])[0])
-                except IndexError: tuners = 1
                 currenttuner = int(key.split('/tuner')[1].split('/')[0])
                 if currenttuner > tuners:
                     raise ValueError('tuner called not within allowed tuners for model')
@@ -71,7 +74,7 @@ def getset(payload: bytes, config: dict):
 
     if newvalue:
         print(f'client wants {key} set to {newvalue}')
-        #value = newvalue
+        value = newvalue
 
     new_payload = 0x03.to_bytes(1, 'big')  # HDHOMERUN_TAG_GETSET_NAME
     new_payload += key_length.to_bytes(1, 'little')
