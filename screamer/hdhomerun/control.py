@@ -1,5 +1,6 @@
 from .packets import create
 import math
+import re
 
 
 def getset(payload: bytes, config: dict):
@@ -24,41 +25,49 @@ def getset(payload: bytes, config: dict):
             value = config['device']['model']
         case '/sys/version':
             value = config['device']['firmware']
-        case '/tuner0/channel':
-            value = 'none'
-            value = '8vsb:183000000'
-        case '/tuner0/channelmap':
-            value = 'us-bcast'
-        case '/tuner0/debug':
-            value = 'tun: ch=none lock=none ss=0 snq=0 seq=0 dbg=0\ndev: bps=0 resync=0 overflow=0\nts:  bps=0 te=0 crc=0\nnet: bps=0 pps=0 err=0 stop=4\n'
-            value = 'tun: ch=8vsb:183000000 lock=8vsb:183000000 ss=96 snq=63 seq=100 dbg=-3800/1660\ndev: bps=19251200 resync=0 overflow=0\nts:  bps=16544 te=0 crc=0\nnet: bps=16544 pps=11 err=0 stop=0\n'
-        case '/tuner0/filter':
-            value = ''
-            value = '0x0000 0x0040'
-        case '/tuner0/lockkey':
-            value = 'none'
-            value = '1.1.1.1'
-        case '/tuner0/program':
-            value = '0'
-            value = '2'
-        case '/tuner0/status':
-            value = 'ch=none lock=none ss=0 snq=0 seq=0 bps=0 pps=0'
-            value = 'ch=8vsb:183000000 lock=8vsb ss=96 snq=60 seq=100 bps=16544 pps=10'
-        case '/tuner0/plpinfo':
-            value = ''
-        case '/tuner0/streaminfo':
-            value = 'none\n'
-            value = '1: 14.1 XHSPR\n2: 22.1 XHSPR (no data)\n3: 20.1 XHSPR (no data)\n4: 14.1 XHSPR (no data)\n5: 14.1 XHSPR (no data)\n'
-        case '/tuner0/target':
-            value = 'none'
-            value = 'http://1.1.1.1:6969'
-        case '/tuner0/vchannel':
-            value = 'none'
-            value = '22.1'
         case 'help':
             value = 'Supported configuration options:\n/lineup/scan\n/sys/copyright\n/sys/debug\n/sys/features\n/sys/hwmodel\n/sys/model\n/sys/restart <resource>\n/sys/version\n/tuner<n>/channel <modulation>:<freq|ch>\n/tuner<n>/channelmap <channelmap>\n/tuner<n>/debug\n/tuner<n>/filter "0x<nnnn>-0x<nnnn> [...]"\n/tuner<n>/lockkey\n/tuner<n>/program <program number>\n/tuner<n>/status\n/tuner<n>/plpinfo\n/tuner<n>/streaminfo\n/tuner<n>/target <ip>:<port>\n/tuner<n>/vchannel <vchannel>\n'
         case _:
-            raise ValueError('invalid key')
+            if key.startswith('/tuner'):
+                try: tuners = int(re.findall(r'\d+', config['device']['hwmodel'].split('-')[-1])[0])
+                except IndexError: tuners = 1
+                currenttuner = int(key.split('/tuner')[1].split('/')[0])
+                if currenttuner > tuners:
+                    raise ValueError('tuner called not within allowed tuners for model')
+                match key.split('/tuner')[1].split('/')[1]:
+                    case 'channel':
+                        value = 'none'
+                        value = '8vsb:183000000'
+                    case 'channelmap':
+                        value = 'us-bcast'
+                    case 'debug':
+                        value = 'tun: ch=none lock=none ss=0 snq=0 seq=0 dbg=0\ndev: bps=0 resync=0 overflow=0\nts:  bps=0 te=0 crc=0\nnet: bps=0 pps=0 err=0 stop=4\n'
+                        value = 'tun: ch=8vsb:183000000 lock=8vsb:183000000 ss=96 snq=63 seq=100 dbg=-3800/1660\ndev: bps=19251200 resync=0 overflow=0\nts:  bps=16544 te=0 crc=0\nnet: bps=16544 pps=11 err=0 stop=0\n'
+                    case 'filter':
+                        value = ''
+                        value = '0x0000 0x0040'
+                    case 'lockkey':
+                        value = 'none'
+                        value = '1.1.1.1'
+                    case 'program':
+                        value = '0'
+                        value = '2'
+                    case 'status':
+                        value = 'ch=none lock=none ss=0 snq=0 seq=0 bps=0 pps=0'
+                        value = 'ch=8vsb:183000000 lock=8vsb ss=96 snq=60 seq=100 bps=16544 pps=10'
+                    case 'plpinfo':
+                        value = ''
+                    case 'streaminfo':
+                        value = 'none\n'
+                        value = '1: 14.1 XHSPR\n2: 22.1 XHSPR (no data)\n3: 20.1 XHSPR (no data)\n4: 14.1 XHSPR (no data)\n5: 14.1 XHSPR (no data)\n'
+                    case 'target':
+                        value = 'none'
+                        value = 'http://1.1.1.1:6969'
+                    case 'vchannel':
+                        value = 'none'
+                        value = '22.1'
+            else:
+                raise ValueError('invalid key')
 
     if newvalue:
         print(f'client wants {key} set to {newvalue}')
