@@ -2,7 +2,7 @@ from .packets import create
 import math
 
 
-def getset(payload: bytes):
+def getset(payload: bytes, config: dict):
     key_length = (int.from_bytes(payload[1:2], 'little'))
     key = payload[2:(key_length+1)].decode()
     newvalue = None
@@ -13,17 +13,17 @@ def getset(payload: bytes):
         case '/lineup/scan':
             value = 'state=complete progress=100% found=71'
         case '/sys/copyright':
-            value = 'https://github.com/samicrusader/screamer'
+            value = 'HDHomerun is copyright of SiliconDust.\nThis program was created using clean-room reverse engineering of both libhdhomerun and actual HDHomerun units.\nhttps://github.com/samicrusader/screamer\n'
         case '/sys/debug':
             value = 'mem: ddr=128 nbk=1 dmk=341 fet=0\nloop: pkt=2\nt0: pt=12 cal=-5465\nt1: pt=12 cal=-5465\nt2: pt=12 cal=-5465\nt3: pt=12 cal=-5490\neth: link=100f\n'
         case '/sys/features':
             value = 'channelmap: us-bcast us-cable us-hrc us-irc kr-bcast kr-cable\nmodulation: 8vsb qam256 qam64\nauto-modulation: auto auto6t auto6c qam\n'
         case '/sys/hwmodel':
-            value = 'HDHR5-4US'
+            value = config['device']['hwmodel']
         case '/sys/model':
-            value = 'hdhomerun5_atsc'
+            value = config['device']['model']
         case '/sys/version':
-            value = '20220203'
+            value = config['device']['firmware']
         case '/tuner0/channel':
             value = 'none'
             value = '8vsb:183000000'

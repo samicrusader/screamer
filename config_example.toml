@@ -1,5 +1,5 @@
 [server]
-bind = "*" # Use * for all interfaces. UDP and LLMNR broadcast servers will always listen on all interfaces however.
+bind = "" # Use * for all interfaces. UDP and LLMNR broadcast servers will always listen on all interfaces however.
 webgui_port = 8080
 # Users who use the official HDHomerun apps will want all of these enabled.
 # If you just want something for your Plex server, you just want the WebGUI and HTTPStream servers enabled.

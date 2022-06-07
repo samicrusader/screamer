@@ -14,8 +14,9 @@ log = logger.setup_custom_logger('root')
 config = dict()
 
 
-def create_http_mgmt_server():
+def create_http_mgmt_server(config: dict):
     flask = Flask('screamer_mgmt')
+    flask.app_config = config
 
     if not os.path.exists(flask.instance_path):
         os.mkdir(flask.instance_path)
@@ -25,8 +26,9 @@ def create_http_mgmt_server():
     return flask
 
 
-def create_http_stream_server():
+def create_http_stream_server(config: dict):
     flask = Flask('screamer_http_stream')
+    flask.app_config = config
 
     if not os.path.exists(flask.instance_path):
         os.mkdir(flask.instance_path)
@@ -61,7 +63,7 @@ class CreateUDPBroadcastServer:
                     self.log.log(logging.INFO, f'Client {address} sent invalid request.')
                     break
 
-            data = func(payload=x[1])
+            data = func(payload=x[1], config=config)
             self.udp_socket.sendto(data, address)
             self.log.log(logging.DEBUG, f'Sent back {data}')
 
@@ -91,6 +93,9 @@ class CreateTCPControlServer:
     tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     tcp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 
+    def __init__(self, config: dict):
+        self.config = config
+
     def handle(self, conn, address):
         while True:
             try:
@@ -109,7 +114,7 @@ class CreateTCPControlServer:
                     case _:
                         self.log.log(logging.INFO, f'Client {address} sent invalid request.')
                         conn.close()
-                data = func(payload=x[1])
+                data = func(payload=x[1], config=config)
                 conn.send(data)
                 self.log.log(logging.DEBUG, f'Sent back {data}')
             except OSError:
@@ -148,7 +153,8 @@ if __name__ == '__main__':
     parser.add_argument('--device-id', '-i', default=None,
                         help='Change device ID.')
     parser.add_argument('--bind', '-b', default=None,
-                        help='Change IP address of control servers. (Broadcast/LLMNR excluded)')
+                        help='Change IP address of control servers. Leave blank for all interfaces.'
+                             '(Broadcast/LLMNR excluded)')
     parser.add_argument('--webgui-port', '--wp', default=None,
                         help='Specify WebGUI port.')
     parser.add_argument('--enable-webgui', default=None,
@@ -198,29 +204,40 @@ if __name__ == '__main__':
 
     print(config)
 
-    # Setup threads
-    webgui_thread = threading.Thread(
-        target=lambda: create_http_mgmt_server().run(host='127.0.0.1', port=8080, use_reloader=False, threaded=True),
-        daemon=True)
-    http_stream_thread = threading.Thread(
-        target=lambda: create_http_stream_server().run(host='127.0.0.1', port=5004, use_reloader=False, threaded=True),
-        daemon=True)
-    broadcast_thread = threading.Thread(
-        target=lambda: CreateUDPBroadcastServer().run(ip='', port=65001),
-        daemon=True)
-    control_thread = threading.Thread(
-        target=lambda: CreateTCPControlServer().run(ip='', port=65001),
-        daemon=True)
-    llmnr_thread = threading.Thread(
-        target=lambda: CreateLLMNRServer().run(ip='', port=5355),
-        daemon=True)
-
-    # Start server threads
-    webgui_thread.start()
-    http_stream_thread.start()
-    broadcast_thread.start()
-    control_thread.start()
-
+    # Configure and start threads
+    threads = list()
+    if config['server']['enable_webgui']:
+        webgui_thread = threading.Thread(
+            target=lambda: create_http_mgmt_server(config=config).run(host=config['server']['bind'],
+                                                                      port=config['server']['webgui_port'],
+                                                                      use_reloader=False, threaded=True),
+            daemon=True)
+        webgui_thread.start()
+        threads.append(webgui_thread)
+    if config['server']['enable_httpstream']:
+        http_stream_thread = threading.Thread(
+            target=lambda: create_http_stream_server(config=config).run(host=config['server']['bind'], port=5004,
+                                                                        use_reloader=False, threaded=True),
+            daemon=True)
+        http_stream_thread.start()
+        threads.append(http_stream_thread)
+    if config['server']['enable_broadcast']:
+        broadcast_thread = threading.Thread(
+            target=lambda: CreateUDPBroadcastServer(config=config).run(ip='', port=65001),
+            daemon=True)
+        broadcast_thread.start()
+        threads.append(broadcast_thread)
+    if config['server']['enable_control']:
+        control_thread = threading.Thread(
+            target=lambda: CreateTCPControlServer(config=config).run(ip=config['server']['bind'], port=65001),
+            daemon=True)
+        control_thread.start()
+        threads.append(control_thread)
+    #llmnr_thread = threading.Thread(
+    #    target=lambda: CreateLLMNRServer(config=config).run(ip='', port=5355),
+    #    daemon=True)
     #llmnr_thread.start() # not needed for now
-    for thread in [webgui_thread, http_stream_thread, broadcast_thread, control_thread]:#, llmnr_thread]:
+    #threads.append(llmnr_thread)
+
+    for thread in threads:
         thread.join()
