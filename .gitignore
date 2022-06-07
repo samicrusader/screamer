@@ -34,4 +34,5 @@ ipython_config.py
 .idea/**/dbnavigator.xml
 
 # Config files
+channels.toml
 config.toml
