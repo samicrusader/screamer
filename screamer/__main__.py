@@ -1,4 +1,4 @@
-# import argparse
+import argparse
 from . import logger
 from .hdhomerun import control, discover
 from .hdhomerun.packets import parse
@@ -7,9 +7,11 @@ import logging
 import socket
 import os
 import threading
+import toml
 from flask import Flask
 
 log = logger.setup_custom_logger('root')
+config = dict()
 
 
 def create_http_mgmt_server():
@@ -125,25 +127,100 @@ class CreateTCPControlServer:
 
 
 if __name__ == '__main__':
+    # ArgumentParser setup
+    parser = argparse.ArgumentParser(
+        description='''HDHomerun Emulator.
+    Model information is available at https://www.silicondust.com/support/linux/.
+    Firmware information is available at https://www.silicondust.com/support/downloads/firmware-changelog/.
+    Device ID format is available in docs.txt (more reverse engineering needed, just use 107C21C8.)
+
+    Command line arguments take priority over config settings.''',
+        prog='python3 -m screamer'
+    )
+    parser.add_argument('--config', '-c', default=None,
+                        help='Specify configuration file.')
+    parser.add_argument('--hwmodel', '-w', default=None,
+                        help='Change hardware model.')
+    parser.add_argument('--model', '-m', default=None,
+                        help='Change device type.')
+    parser.add_argument('--firmware', '-f', default=None,
+                        help='Change emulated firmware version.')
+    parser.add_argument('--device-id', '-i', default=None,
+                        help='Change device ID.')
+    parser.add_argument('--bind', '-b', default=None,
+                        help='Change IP address of control servers. (Broadcast/LLMNR excluded)')
+    parser.add_argument('--webgui-port', '--wp', default=None,
+                        help='Specify WebGUI port.')
+    parser.add_argument('--enable-webgui', default=None,
+                        help='Enable/Disable Web GUI.')
+    parser.add_argument('--enable-httpstream', default=None,
+                        help='Enable/Disable HTTPStream server.')
+    parser.add_argument('--enable-broadcast', default=None,
+                        help='Enable/Disable UDP Broadcast client.')
+    parser.add_argument('--enable-control', default=None,
+                        help='Enable/Disable TCP Control server.')
+
+    args = parser.parse_args()
+
+    # Load .toml settings
+    configfile = 'config.toml'
+    if args.config:
+        configfile = args.config
+
+    tomlconfig = dict()
+    try:
+        tomlconfig = toml.load(configfile)
+    except FileNotFoundError:
+        log.log(logging.ERROR, f'Config file {configfile} was not found, using command line parameters.')
+    except toml.decoder.TomlDecodeError as e:
+        log.log(logging.ERROR, f'Config file {configfile} has invalid syntax: {str(e)}. Bailing out.')
+        exit(1)
+
+    # Parse config variables
+    try: toml_entry = tomlconfig['server']
+    except KeyError: toml_entry = dict()
+
+    for i in [
+        ('server', ['bind', 'webgui_port', 'enable_webgui', 'enable_httpstream', 'enable_broadcast', 'enable_control']),
+        ('device', ['hwmodel', 'model', 'firmware', 'device_id'])
+    ]:
+        cfg_entry = dict()
+        for x in i[1]:
+            if getattr(args, x):
+                cfg_entry[x] = getattr(args, x)
+            else:
+                try: tomlconfig[i[0]][x]
+                except KeyError:
+                    log.log(logging.ERROR, f'Config variable {i[0]}[{x}] is not set. Bailing out.')
+                    exit(1)
+                else: cfg_entry[x] = tomlconfig[i[0]][x]
+        config[i[0]] = cfg_entry
+
+    print(config)
+
+    # Setup threads
     webgui_thread = threading.Thread(
         target=lambda: create_http_mgmt_server().run(host='127.0.0.1', port=8080, use_reloader=False, threaded=True),
         daemon=True)
-    webgui_thread.start()
     http_stream_thread = threading.Thread(
         target=lambda: create_http_stream_server().run(host='127.0.0.1', port=5004, use_reloader=False, threaded=True),
         daemon=True)
-    http_stream_thread.start()
     broadcast_thread = threading.Thread(
         target=lambda: CreateUDPBroadcastServer().run(ip='', port=65001),
         daemon=True)
-    broadcast_thread.start()
     control_thread = threading.Thread(
         target=lambda: CreateTCPControlServer().run(ip='', port=65001),
         daemon=True)
-    control_thread.start()
     llmnr_thread = threading.Thread(
         target=lambda: CreateLLMNRServer().run(ip='', port=5355),
         daemon=True)
+
+    # Start server threads
+    webgui_thread.start()
+    http_stream_thread.start()
+    broadcast_thread.start()
+    control_thread.start()
+
     #llmnr_thread.start() # not needed for now
     for thread in [webgui_thread, http_stream_thread, broadcast_thread, control_thread]:#, llmnr_thread]:
         thread.join()
