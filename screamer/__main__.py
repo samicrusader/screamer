@@ -189,7 +189,7 @@ if __name__ == '__main__':
     ]:
         cfg_entry = dict()
         for x in i[1]:
-            if getattr(args, x):
+            if not getattr(args, x) == None:
                 cfg_entry[x] = getattr(args, x)
             else:
                 try: tomlconfig[i[0]][x]
@@ -203,7 +203,7 @@ if __name__ == '__main__':
 
     # Configure and start threads
     threads = list()
-    if config['server']['enable_webgui']:
+    if config['server']['enable_webgui'] == True:
         webgui_thread = threading.Thread(
             target=lambda: create_http_mgmt_server(config=config).run(host=config['server']['bind'],
                                                                       port=config['server']['webgui_port'],
@@ -211,20 +211,20 @@ if __name__ == '__main__':
             daemon=True)
         webgui_thread.start()
         threads.append(webgui_thread)
-    if config['server']['enable_httpstream']:
+    if config['server']['enable_httpstream'] == True:
         http_stream_thread = threading.Thread(
             target=lambda: create_http_stream_server(config=config).run(host=config['server']['bind'], port=5004,
                                                                         use_reloader=False, threaded=True),
             daemon=True)
         http_stream_thread.start()
         threads.append(http_stream_thread)
-    if config['server']['enable_broadcast']:
+    if config['server']['enable_broadcast'] == True:
         broadcast_thread = threading.Thread(
             target=lambda: CreateUDPBroadcastServer().run(ip='', port=65001),
             daemon=True)
         broadcast_thread.start()
         threads.append(broadcast_thread)
-    if config['server']['enable_control']:
+    if config['server']['enable_control'] == True:
         control_thread = threading.Thread(
             target=lambda: CreateTCPControlServer().run(ip=config['server']['bind'], port=65001),
             daemon=True)
