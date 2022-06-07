@@ -93,9 +93,6 @@ class CreateTCPControlServer:
     tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     tcp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 
-    def __init__(self, config: dict):
-        self.config = config
-
     def handle(self, conn, address):
         while True:
             try:
@@ -223,13 +220,13 @@ if __name__ == '__main__':
         threads.append(http_stream_thread)
     if config['server']['enable_broadcast']:
         broadcast_thread = threading.Thread(
-            target=lambda: CreateUDPBroadcastServer(config=config).run(ip='', port=65001),
+            target=lambda: CreateUDPBroadcastServer().run(ip='', port=65001),
             daemon=True)
         broadcast_thread.start()
         threads.append(broadcast_thread)
     if config['server']['enable_control']:
         control_thread = threading.Thread(
-            target=lambda: CreateTCPControlServer(config=config).run(ip=config['server']['bind'], port=65001),
+            target=lambda: CreateTCPControlServer().run(ip=config['server']['bind'], port=65001),
             daemon=True)
         control_thread.start()
         threads.append(control_thread)

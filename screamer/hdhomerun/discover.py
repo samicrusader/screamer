@@ -1,7 +1,7 @@
 from .packets import create
 
 
-def discover_request(_, config: dict):
+def discover_request(payload: bytes, config: dict):
     payload = 0x02.to_bytes(1, 'big')  # HDHOMERUN_TAG_DEVICE_ID
     payload += 0x04.to_bytes(1, 'big')
     payload += bytes.fromhex(config['device']['device_id']) # https://github.com/Silicondust/libhdhomerun/blob/master/hdhomerun_discover.c ??
