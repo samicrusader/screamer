@@ -162,7 +162,7 @@ def getset(payload: bytes, config: dict, address: tuple):
                             session['tuners'][currenttuner]['program'] = newvalue
                         value = session['tuners'][currenttuner]['program']
                     case 'status':
-                        value = f'ch={tinfo["ch"]} lock={tinfo["lock"]} ss={tinfo["ss"]} snq={tinfo["snq"]} seq={tinfo["100"]} bps={tinfo["bps"]} pps={tinfo["pps"]}'
+                        value = f'ch={tinfo["ch"]} lock={tinfo["lock"]} ss={tinfo["ss"]} snq={tinfo["snq"]} seq={tinfo["seq"]} bps={tinfo["bps"]} pps={tinfo["pps"]}'
                     case 'plpinfo':
                         value = ''  # ??
                     case 'streaminfo':
@@ -189,6 +189,7 @@ def getset(payload: bytes, config: dict, address: tuple):
         value_length_bytes += math.ceil((value_length / 236)).to_bytes(1, 'little')  # by (length / 236) rounded up
     else:  # otherwise
         value_length_bytes = value_length.to_bytes(1, 'little')  # just send the length
+        value_length_bytes += 0x01.to_bytes(1, 'little') # with 1
     new_payload += value_length_bytes
     new_payload += value.encode()
     new_payload += 0x00.to_bytes(1, 'big')  # null terminator
