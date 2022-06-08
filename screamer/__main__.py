@@ -111,7 +111,7 @@ class CreateTCPControlServer:
                     case _:
                         self.log.log(logging.INFO, f'Client {address} sent invalid request.')
                         conn.close()
-                data = func(payload=x[1], config=config)
+                data = func(payload=x[1], config=config, address=address)
                 conn.send(data)
                 self.log.log(logging.DEBUG, f'Sent back {data}')
             except OSError:
@@ -141,6 +141,8 @@ if __name__ == '__main__':
     )
     parser.add_argument('--config', '-c', default=None,
                         help='Specify configuration file.')
+    parser.add_argument('--data', '-d', default=None,
+                        help='Specify channel listing file.')
     parser.add_argument('--hwmodel', '-w', default=None,
                         help='Change hardware model.')
     parser.add_argument('--model', '-m', default=None,
@@ -170,13 +172,26 @@ if __name__ == '__main__':
     if args.config:
         configfile = args.config
 
+    datafile = 'channels.toml'
+    if args.data:
+        datafile = args.data
+
     tomlconfig = dict()
+    channeldata = dict()
     try:
         tomlconfig = toml.load(configfile)
     except FileNotFoundError:
         log.log(logging.ERROR, f'Config file {configfile} was not found, using command line parameters.')
     except toml.decoder.TomlDecodeError as e:
         log.log(logging.ERROR, f'Config file {configfile} has invalid syntax: {str(e)}. Bailing out.')
+        exit(1)
+
+    try:
+        channeldata = toml.load(datafile)
+    except FileNotFoundError:
+        log.log(logging.ERROR, f'Config file {datafile} was not found, using command line parameters.')
+    except toml.decoder.TomlDecodeError as e:
+        log.log(logging.ERROR, f'Config file {datafile} has invalid syntax: {str(e)}. Bailing out.')
         exit(1)
 
     # Parse config variables
@@ -199,6 +214,7 @@ if __name__ == '__main__':
                 else: cfg_entry[x] = tomlconfig[i[0]][x]
         config[i[0]] = cfg_entry
 
+    config['channels'] = channeldata
     print(config)
 
     # Configure and start threads
