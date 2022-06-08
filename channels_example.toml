@@ -1,0 +1,19 @@
+[ch_1]
+# Source information
+name = "Weathernews"
+source = "https://movie.mcas.jp/mcas/smil:wn1.smil/chunklist_b1800000.m3u8"
+
+# Channel information
+master_channel = 10
+virtual_channel = 1
+
+# Frequency information
+# https://questtel.com/wiki/atsc-channel-center-frequency-table
+freq_low = 192
+freq_high = 198
+freq_type = "8vsb" # qam256/qam64 for cable, 8vsb for antenna
+
+# Signal information
+signal_strength = 100
+signal_quality = 100
+symbol_quality = 100
