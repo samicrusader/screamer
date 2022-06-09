@@ -7,19 +7,73 @@ import re
 import threading
 
 session = {'lineup': {'scan': 'incomplete', 'progress': 0, 'found': 0}, 'tuners': {
-    0: {'ch': 'none', 'channelmap': 'none', 'filter': '', 'lock': 'none', 'ss': 0, 'snq': 0, 'seq': 0, 'dbg': '0',
+    0: {'ch': 'none', 'channelmap': 'us-bcast', 'filter': '', 'lock': 'none', 'ss': 0, 'snq': 0, 'seq': 0, 'dbg': '0',
         'bps': 0, 'pps': 0, 'program': 0, 'lockkey': 'none', 'target': 'none', 'streaminfo': 'none',
         'vchannel': 'none'},
-    1: {'ch': 'none', 'channelmap': 'none', 'filter': '', 'lock': 'none', 'ss': 0, 'snq': 0, 'seq': 0, 'dbg': '0',
+    1: {'ch': 'none', 'channelmap': 'us-bcast', 'filter': '', 'lock': 'none', 'ss': 0, 'snq': 0, 'seq': 0, 'dbg': '0',
         'bps': 0, 'pps': 0, 'program': 0, 'lockkey': 'none', 'target': 'none', 'streaminfo': 'none',
         'vchannel': 'none'},
-    2: {'ch': 'none', 'channelmap': 'none', 'filter': '', 'lock': 'none', 'ss': 0, 'snq': 0, 'seq': 0, 'dbg': '0',
+    2: {'ch': 'none', 'channelmap': 'us-bcast', 'filter': '', 'lock': 'none', 'ss': 0, 'snq': 0, 'seq': 0, 'dbg': '0',
         'bps': 0, 'pps': 0, 'program': 0, 'lockkey': 'none', 'target': 'none', 'streaminfo': 'none',
         'vchannel': 'none'},
-    3: {'ch': 'none', 'channelmap': 'none', 'filter': '', 'lock': 'none', 'ss': 0, 'snq': 0, 'seq': 0, 'dbg': '0',
+    3: {'ch': 'none', 'channelmap': 'us-bcast', 'filter': '', 'lock': 'none', 'ss': 0, 'snq': 0, 'seq': 0, 'dbg': '0',
         'bps': 0, 'pps': 0, 'program': 0, 'lockkey': 'none', 'target': 'none', 'streaminfo': 'none',
         'vchannel': 'none'},
 }}
+
+
+def clear_tuner(tuner: int):
+    session['tuners'][tuner]['ch'] = 'none'
+    session['tuners'][tuner]['filter'] = ''
+    session['tuners'][tuner]['lock'] = 'none'
+    session['tuners'][tuner]['program'] = 0
+    # session['tuners'][i]['target'] = 'none'  # TODO: implement when streaming is implemented
+    session['tuners'][tuner]['vchannel'] = 'none'
+    session['tuners'][tuner]['ss'] = 0
+    session['tuners'][tuner]['snq'] = 0
+    session['tuners'][tuner]['seq'] = 0
+    session['tuners'][tuner]['dbg'] = '0'
+    session['tuners'][tuner]['bps'] = 0
+    session['tuners'][tuner]['pps'] = 0
+
+
+def set_tuner(config: dict, freq: int, tuner: int):
+    channels = list()
+    print(freq)
+    for cid, channel in config['channels'].items():
+        if freq in range(channel['freq_low'], channel['freq_high']+1):
+            print(f'{freq} is definitely within {channel["freq_low"]} and {channel["freq_high"]}')
+            channels.append(cid)
+    print('current channels:', channels)
+    session['tuners'][tuner]['ch'] = f'8vsb:{(freq * 1000000)}'
+    session['tuners'][tuner]['filter'] = '0x0000-0x1fff'
+    session['tuners'][tuner]['program'] = 0
+    session['tuners'][tuner]['vchannel'] = 'none'
+    session['tuners'][tuner]['dbg'] = '0'  # TODO: figure whatever the hell this is out
+    if not channels == list():
+        session['tuners'][tuner]['lock'] = f'8vsb:{(freq * 1000000)}'
+        session['tuners'][tuner]['ss'] = config['channels'][channels[0]]['signal_strength']
+        session['tuners'][tuner]['snq'] = config['channels'][channels[0]]['signal_quality']
+        session['tuners'][tuner]['seq'] = config['channels'][channels[0]]['symbol_quality']
+        # session['tuners'][tuner]['bps']  # TODO: implement when streaming is a thing
+        # session['tuners'][tuner]['pps']  # TODO: implement when streaming is a thing
+        session['tuners'][tuner]['streaminfo'] = str()
+        _i = 1
+        for i in channels:
+            channel = config['channels'][i]
+            session['tuners'][tuner]['streaminfo'] += \
+                f'{_i}: {channel["master_channel"]}.{channel["virtual_channel"]} {channel["name"]}\n'
+        session['tuners'][tuner]['streaminfo'] += 'tsid=0x0100\n\n'
+        return True
+    else:
+        session['tuners'][tuner]['lock'] = 'none'
+        session['tuners'][tuner]['ss'] = 0
+        session['tuners'][tuner]['snq'] = 0
+        session['tuners'][tuner]['seq'] = 0
+        session['tuners'][tuner]['bps'] = 0
+        session['tuners'][tuner]['pps'] = 0
+        session['tuners'][tuner]['streaminfo'] = 'none\n\n'
+        return False
 
 
 def scan(config: dict):
@@ -31,7 +85,7 @@ def scan(config: dict):
     except IndexError:
         tuners = 1
     arrays = list()
-    for array in numpy.array_split(range(68), tuners):
+    for array in numpy.array_split(range(2, 70), tuners):
         arrays.append(list(array))
     print(arrays)
     checked = 0
@@ -39,50 +93,22 @@ def scan(config: dict):
     while True:
         for i in range(tuners):
             if not len(arrays[i]) == 0:
-                channel = (arrays[i][0] + 1)
-                session['tuners'][i]['ch'] = f'8vsb:{(atsc_freq[channel]["low"] * 1000000)}'
-                # TODO: session['tuners'][i]['filter']
-                session['tuners'][i]['lock'] = f'8vsb:{(atsc_freq[channel]["low"] * 1000000)}'
-                # TODO: session['tuners'][i]['lockkey']
-                session['tuners'][i]['program'] = 1
-                # TODO: session['tuners'][i]['target']
-                session['tuners'][i]['vchannel'] = f'{channel}.1'
-                print(f'checking channel {checked + 1}...')
-                if f'ch_{channel}' in config['channels'].keys():
-                    session['tuners'][i]['ss'] = config['channels'][f'ch_{channel}']['signal_strength']
-                    session['tuners'][i]['snq'] = config['channels'][f'ch_{channel}']['signal_quality']
-                    session['tuners'][i]['seq'] = config['channels'][f'ch_{channel}']['symbol_quality']
-                    # TODO: session['tuners'][i]['dbg'] # ??
-                    # TODO: session['tuners'][i]['bps']
-                    # TODO: session['tuners'][i]['pps']
+                channel = (arrays[i][0])
+                print(f'checking channel {channel}...')
+                print(channel)
+                print(atsc_freq[channel]["low"])
+                tuned = set_tuner(config, atsc_freq[channel]["low"], i)  # FIXME: frequency is too exact
+                if tuned:
                     found += 1
-                    print(f'added {checked + 2} to found')
-                else:
-                    session['tuners'][i]['ss'] = 0
-                    session['tuners'][i]['snq'] = 0
-                    session['tuners'][i]['seq'] = 0
-                    # TODO: session['tuners'][i]['dbg']
-                    # TODO: session['tuners'][i]['bps']
-                    # TODO: session['tuners'][i]['pps']
+                    print(f'added {channel} to found')
                 arrays[i].pop(0)
                 checked += 1
                 session['lineup']['progress'] = int((checked / 68) * 100)
                 session['lineup']['found'] = found
+                sleep(0.25)
             else:
                 print(f'tuner {i} exhausted of channels')
-                session['tuners'][i]['ch'] = 'none'
-                session['tuners'][i]['filter'] = ''
-                session['tuners'][i]['lock'] = 'none'
-                session['tuners'][i]['lockkey'] = 'none'
-                session['tuners'][i]['program'] = 0
-                session['tuners'][i]['target'] = 'none'
-                session['tuners'][i]['vchannel'] = 'none'
-                session['tuners'][i]['ss'] = 0
-                session['tuners'][i]['snq'] = 0
-                session['tuners'][i]['seq'] = 0
-                session['tuners'][i]['dbg'] = '0'
-                session['tuners'][i]['bps'] = 0
-                session['tuners'][i]['pps'] = 0
+                clear_tuner(i)
         x = 0
         for i in range(tuners):
             x += len(arrays[i])
@@ -103,16 +129,16 @@ def getset(payload: bytes, config: dict, address: tuple):
         tuners = 1
     key_length = (int.from_bytes(payload[1:2], 'little'))
     key = payload[2:(key_length + 1)].decode()
-    newvalue = None
+    new_value = None
     if payload.split(key.encode())[1]:
         newvalue_length = int.from_bytes(payload[(key_length + 3):(key_length + 4)], 'little')
-        newvalue = payload[(key_length + 4):(key_length + 3 + newvalue_length)].decode()
+        new_value = payload[(key_length + 4):(key_length + 3 + newvalue_length)].decode()
     match key:
         case '/lineup/scan':
-            if newvalue == 'scan':
+            if new_value:
                 if not session['lineup']['scan'] == 'running':
-                    scanthread = threading.Thread(target=lambda: scan(config), daemon=True)
-                    scanthread.start()
+                    scan_thread = threading.Thread(target=lambda: scan(config), daemon=True)
+                    scan_thread.start()
                     sleep(0.25)
             value = f'state={session["lineup"]["scan"]} progress={session["lineup"]["progress"]}% found={session["lineup"]["found"]}'
         case '/sys/copyright':
@@ -131,50 +157,55 @@ def getset(payload: bytes, config: dict, address: tuple):
             value = 'Supported configuration options:\n/lineup/scan\n/sys/copyright\n/sys/debug\n/sys/features\n/sys/hwmodel\n/sys/model\n/sys/restart <resource>\n/sys/version\n/tuner<n>/channel <modulation>:<freq|ch>\n/tuner<n>/channelmap <channelmap>\n/tuner<n>/debug\n/tuner<n>/filter "0x<nnnn>-0x<nnnn> [...]"\n/tuner<n>/lockkey\n/tuner<n>/program <program number>\n/tuner<n>/status\n/tuner<n>/plpinfo\n/tuner<n>/streaminfo\n/tuner<n>/target <ip>:<port>\n/tuner<n>/vchannel <vchannel>\n'
         case _:
             if key.startswith('/tuner'):
-                currenttuner = int(key.split('/tuner')[1].split('/')[0])
-                if currenttuner > tuners:
+                current_tuner = int(key.split('/tuner')[1].split('/')[0])
+                if current_tuner > tuners:
                     raise ValueError('tuner called not within allowed tuners for model')
-                tinfo = session['tuners'][currenttuner]
+                tinfo = session['tuners'][current_tuner]
+                if not new_value and not address[0] == session['tuners'][current_tuner]['lockkey'] and not session['tuners'][current_tuner]['lockkey'] == 'none':
+                    raise ValueError('You can\'t set a locked tuner dumbass')
                 match key.split('/tuner')[1].split('/')[1]:
                     case 'channel':
-                        if newvalue:
-                            session['tuners'][currenttuner]['ch'] = newvalue
-                        value = session['tuners'][currenttuner]['ch']
+                        if new_value:
+                            freq = int(int(new_value.split(':')[1]) / 1000000)
+                            set_tuner(config, freq, current_tuner)
+                            session['tuners'][current_tuner]['ch'] = new_value
+                        value = session['tuners'][current_tuner]['ch']
                     case 'channelmap':
-                        if newvalue:
-                            session['tuners'][currenttuner]['channelmap'] = newvalue
-                        value = session['tuners'][currenttuner]['channelmap']
+                        if new_value:
+                            if new_value in ['us-bcast', 'us-cable', 'us-hrc', 'us-irc', 'kr-bcast', 'kr-cable']:
+                                session['tuners'][current_tuner]['channelmap'] = new_value
+                        value = session['tuners'][current_tuner]['channelmap']
                     case 'debug':
                         value = f'tun: ch={tinfo["ch"]} lock={tinfo["lock"]} ss={tinfo["ss"]} snq={tinfo["snq"]} seq={tinfo["seq"]} dbg={tinfo["dbg"]}\ndev: bps={tinfo["bps"]} resync=0 overflow=0\nts: bps=0 te=0 crc=0\nnet: bps=0 pps={tinfo["pps"]} err=0 stop=0\n'
                     case 'filter':
-                        if newvalue:
-                            session['tuners'][currenttuner]['filter'] = newvalue
-                        value = session['tuners'][currenttuner]['filter']
+                        if new_value:
+                            session['tuners'][current_tuner]['filter'] = new_value
+                        value = session['tuners'][current_tuner]['filter']
                     case 'lockkey':
-                        if newvalue:
-                            if newvalue == 'none':
-                                session['tuners'][currenttuner]['lockkey'] = 'none'
+                        if new_value:
+                            if new_value == 'none':
+                                session['tuners'][current_tuner]['lockkey'] = 'none'
                             else:
-                                session['tuners'][currenttuner]['lockkey'] = address[0]
-                        value = session['tuners'][currenttuner]['lockkey']
+                                session['tuners'][current_tuner]['lockkey'] = address[0]
+                        value = session['tuners'][current_tuner]['lockkey']
                     case 'program':
-                        if newvalue:
-                            session['tuners'][currenttuner]['program'] = newvalue
-                        value = session['tuners'][currenttuner]['program']
+                        if new_value:
+                            session['tuners'][current_tuner]['program'] = new_value
+                        value = session['tuners'][current_tuner]['program']
                     case 'status':
-                        value = f'ch={tinfo["ch"]} lock={tinfo["lock"]} ss={tinfo["ss"]} snq={tinfo["snq"]} seq={tinfo["100"]} bps={tinfo["bps"]} pps={tinfo["pps"]}'
+                        value = f'ch={tinfo["ch"]} lock={tinfo["lock"]} ss={tinfo["ss"]} snq={tinfo["snq"]} seq={tinfo["seq"]} bps={tinfo["bps"]} pps={tinfo["pps"]}'
                     case 'plpinfo':
                         value = ''  # ??
                     case 'streaminfo':
                         value = tinfo['streaminfo']
                     case 'target':  # This bit is what actually does stuff.
-                        if newvalue:
-                            session['tuners'][currenttuner]['target'] = newvalue
-                        value = session['tuners'][currenttuner]['target']
+                        if new_value:
+                            session['tuners'][current_tuner]['target'] = new_value
+                        value = session['tuners'][current_tuner]['target']
                     case 'vchannel':
-                        if newvalue:
-                            session['tuners'][currenttuner]['vchannel'] = newvalue
-                        value = session['tuners'][currenttuner]['vchannel']
+                        if new_value:
+                            session['tuners'][current_tuner]['vchannel'] = new_value
+                        value = session['tuners'][current_tuner]['vchannel']
             else:
                 raise ValueError('invalid key')
 
@@ -189,6 +220,7 @@ def getset(payload: bytes, config: dict, address: tuple):
         value_length_bytes += math.ceil((value_length / 236)).to_bytes(1, 'little')  # by (length / 236) rounded up
     else:  # otherwise
         value_length_bytes = value_length.to_bytes(1, 'little')  # just send the length
+        value_length_bytes += 0x01.to_bytes(1, 'little') # with 1
     new_payload += value_length_bytes
     new_payload += value.encode()
     new_payload += 0x00.to_bytes(1, 'big')  # null terminator

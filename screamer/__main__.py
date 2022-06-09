@@ -14,19 +14,19 @@ log = logger.setup_custom_logger('root')
 config = dict()
 
 
-def create_http_mgmt_server(config: dict):
+def create_http_mgmt_server():
     flask = Flask('screamer_mgmt')
     flask.app_config = config
 
     if not os.path.exists(flask.instance_path):
         os.mkdir(flask.instance_path)
 
-    # from . import bla
-    # app.register_blueprint(bla.bp)
+    from .hdhomerun import http_api
+    flask.register_blueprint(http_api.bp)
     return flask
 
 
-def create_http_stream_server(config: dict):
+def create_http_stream_server():
     flask = Flask('screamer_http_stream')
     flask.app_config = config
 
@@ -221,7 +221,7 @@ if __name__ == '__main__':
     threads = list()
     if config['server']['enable_webgui'] == True:
         webgui_thread = threading.Thread(
-            target=lambda: create_http_mgmt_server(config=config).run(host=config['server']['bind'],
+            target=lambda: create_http_mgmt_server().run(host=config['server']['bind'],
                                                                       port=config['server']['webgui_port'],
                                                                       use_reloader=False, threaded=True),
             daemon=True)
@@ -229,7 +229,7 @@ if __name__ == '__main__':
         threads.append(webgui_thread)
     if config['server']['enable_httpstream'] == True:
         http_stream_thread = threading.Thread(
-            target=lambda: create_http_stream_server(config=config).run(host=config['server']['bind'], port=5004,
+            target=lambda: create_http_stream_server().run(host=config['server']['bind'], port=5004,
                                                                         use_reloader=False, threaded=True),
             daemon=True)
         http_stream_thread.start()

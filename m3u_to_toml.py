@@ -34,8 +34,6 @@ for i, channel in enumerate(channels):
     tomlchannel['source'] = channel[1]
     tomlchannel['master_channel'] = i+2
     tomlchannel['virtual_channel'] = 1
-    tomlchannel['freq_low'] = atsc_freq[i + 2]['low']
-    tomlchannel['freq_high'] = atsc_freq[i + 2]['high']
     tomlchannel['freq_type'] = freq_type
     tomlchannel['signal_strength'] = 100
     tomlchannel['signal_quality'] = 100
