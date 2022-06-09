@@ -31,7 +31,7 @@ def scan(config: dict):
     except IndexError:
         tuners = 1
     arrays = list()
-    for array in numpy.array_split(range(68), tuners):
+    for array in numpy.array_split(range(2, 70), tuners):
         arrays.append(list(array))
     print(arrays)
     checked = 0
@@ -39,7 +39,9 @@ def scan(config: dict):
     while True:
         for i in range(tuners):
             if not len(arrays[i]) == 0:
-                channel = (arrays[i][0] + 1)
+                channel = (arrays[i][0])
+                print(channel)
+                print(atsc_freq[channel]["low"])
                 session['tuners'][i]['ch'] = f'8vsb:{(atsc_freq[channel]["low"] * 1000000)}'
                 # TODO: session['tuners'][i]['filter']
                 session['tuners'][i]['lock'] = f'8vsb:{(atsc_freq[channel]["low"] * 1000000)}'
@@ -68,6 +70,7 @@ def scan(config: dict):
                 checked += 1
                 session['lineup']['progress'] = int((checked / 68) * 100)
                 session['lineup']['found'] = found
+                sleep(0.25)
             else:
                 print(f'tuner {i} exhausted of channels')
                 session['tuners'][i]['ch'] = 'none'
@@ -109,7 +112,7 @@ def getset(payload: bytes, config: dict, address: tuple):
         newvalue = payload[(key_length + 4):(key_length + 3 + newvalue_length)].decode()
     match key:
         case '/lineup/scan':
-            if newvalue == 'scan':
+            if newvalue:
                 if not session['lineup']['scan'] == 'running':
                     scanthread = threading.Thread(target=lambda: scan(config), daemon=True)
                     scanthread.start()
