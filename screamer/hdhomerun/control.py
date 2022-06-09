@@ -132,7 +132,11 @@ def getset(payload: bytes, config: dict, address: tuple):
     new_value = None
     if payload.split(key.encode())[1]:
         newvalue_length = int.from_bytes(payload[(key_length + 3):(key_length + 4)], 'little')
-        new_value = payload[(key_length + 4):(key_length + 3 + newvalue_length)].decode()
+        try:
+            new_value = payload[(key_length + 4):(key_length + 3 + newvalue_length)].decode()
+        except Exception:
+            print('new_value is raw bytes, have fun...')
+            new_value = payload[(key_length + 4):(key_length + 3 + newvalue_length)]
     match key:
         case '/lineup/scan':
             if new_value:
@@ -166,9 +170,12 @@ def getset(payload: bytes, config: dict, address: tuple):
                 match key.split('/tuner')[1].split('/')[1]:
                     case 'channel':
                         if new_value:
-                            freq = int(int(new_value.split(':')[1]) / 1000000)
-                            set_tuner(config, freq, current_tuner)
-                            session['tuners'][current_tuner]['ch'] = new_value
+                            if new_value == 'none':
+                                clear_tuner(current_tuner)
+                            else:
+                                freq = int(int(new_value.split(':')[1]) / 1000000)
+                                set_tuner(config, freq, current_tuner)
+                                session['tuners'][current_tuner]['ch'] = new_value
                         value = session['tuners'][current_tuner]['ch']
                     case 'channelmap':
                         if new_value:
@@ -179,7 +186,12 @@ def getset(payload: bytes, config: dict, address: tuple):
                         value = f'tun: ch={tinfo["ch"]} lock={tinfo["lock"]} ss={tinfo["ss"]} snq={tinfo["snq"]} seq={tinfo["seq"]} dbg={tinfo["dbg"]}\ndev: bps={tinfo["bps"]} resync=0 overflow=0\nts: bps=0 te=0 crc=0\nnet: bps=0 pps={tinfo["pps"]} err=0 stop=0\n'
                     case 'filter':
                         if new_value:
-                            session['tuners'][current_tuner]['filter'] = new_value
+                            if type(new_value) == str:
+                                session['tuners'][current_tuner]['filter'] = new_value
+                            elif type(new_value) == bytes:
+                                # https://stackoverflow.com/a/59152577
+                                # https://stackoverflow.com/a/339024
+                                session['tuners'][current_tuner]['filter'] = '-'.join([f'0x{val.rjust(4, "0")}' for val in new_value.hex(' ').split()])
                         value = session['tuners'][current_tuner]['filter']
                     case 'lockkey':
                         if new_value:
