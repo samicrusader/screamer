@@ -22,6 +22,10 @@ session = {'lineup': {'scan': 'incomplete', 'progress': 0, 'found': 0}, 'tuners'
 }}
 
 
+def set_tuner(channel: int):
+    pass
+
+
 def scan(config: dict):
     session['lineup']['scan'] = 'running'
     session['lineup']['progress'] = 0
@@ -106,13 +110,13 @@ def getset(payload: bytes, config: dict, address: tuple):
         tuners = 1
     key_length = (int.from_bytes(payload[1:2], 'little'))
     key = payload[2:(key_length + 1)].decode()
-    newvalue = None
+    new_value = None
     if payload.split(key.encode())[1]:
         newvalue_length = int.from_bytes(payload[(key_length + 3):(key_length + 4)], 'little')
-        newvalue = payload[(key_length + 4):(key_length + 3 + newvalue_length)].decode()
+        new_value = payload[(key_length + 4):(key_length + 3 + newvalue_length)].decode()
     match key:
         case '/lineup/scan':
-            if newvalue:
+            if new_value:
                 if not session['lineup']['scan'] == 'running':
                     scanthread = threading.Thread(target=lambda: scan(config), daemon=True)
                     scanthread.start()
@@ -134,36 +138,36 @@ def getset(payload: bytes, config: dict, address: tuple):
             value = 'Supported configuration options:\n/lineup/scan\n/sys/copyright\n/sys/debug\n/sys/features\n/sys/hwmodel\n/sys/model\n/sys/restart <resource>\n/sys/version\n/tuner<n>/channel <modulation>:<freq|ch>\n/tuner<n>/channelmap <channelmap>\n/tuner<n>/debug\n/tuner<n>/filter "0x<nnnn>-0x<nnnn> [...]"\n/tuner<n>/lockkey\n/tuner<n>/program <program number>\n/tuner<n>/status\n/tuner<n>/plpinfo\n/tuner<n>/streaminfo\n/tuner<n>/target <ip>:<port>\n/tuner<n>/vchannel <vchannel>\n'
         case _:
             if key.startswith('/tuner'):
-                currenttuner = int(key.split('/tuner')[1].split('/')[0])
-                if currenttuner > tuners:
+                current_tuner = int(key.split('/tuner')[1].split('/')[0])
+                if current_tuner > tuners:
                     raise ValueError('tuner called not within allowed tuners for model')
-                tinfo = session['tuners'][currenttuner]
+                tinfo = session['tuners'][current_tuner]
                 match key.split('/tuner')[1].split('/')[1]:
                     case 'channel':
-                        if newvalue:
-                            session['tuners'][currenttuner]['ch'] = newvalue
-                        value = session['tuners'][currenttuner]['ch']
+                        if new_value:
+                            session['tuners'][current_tuner]['ch'] = new_value
+                        value = session['tuners'][current_tuner]['ch']
                     case 'channelmap':
-                        if newvalue:
-                            session['tuners'][currenttuner]['channelmap'] = newvalue
-                        value = session['tuners'][currenttuner]['channelmap']
+                        if new_value:
+                            session['tuners'][current_tuner]['channelmap'] = new_value
+                        value = session['tuners'][current_tuner]['channelmap']
                     case 'debug':
                         value = f'tun: ch={tinfo["ch"]} lock={tinfo["lock"]} ss={tinfo["ss"]} snq={tinfo["snq"]} seq={tinfo["seq"]} dbg={tinfo["dbg"]}\ndev: bps={tinfo["bps"]} resync=0 overflow=0\nts: bps=0 te=0 crc=0\nnet: bps=0 pps={tinfo["pps"]} err=0 stop=0\n'
                     case 'filter':
-                        if newvalue:
-                            session['tuners'][currenttuner]['filter'] = newvalue
-                        value = session['tuners'][currenttuner]['filter']
+                        if new_value:
+                            session['tuners'][current_tuner]['filter'] = new_value
+                        value = session['tuners'][current_tuner]['filter']
                     case 'lockkey':
-                        if newvalue:
-                            if newvalue == 'none':
-                                session['tuners'][currenttuner]['lockkey'] = 'none'
+                        if new_value:
+                            if new_value == 'none':
+                                session['tuners'][current_tuner]['lockkey'] = 'none'
                             else:
-                                session['tuners'][currenttuner]['lockkey'] = address[0]
-                        value = session['tuners'][currenttuner]['lockkey']
+                                session['tuners'][current_tuner]['lockkey'] = address[0]
+                        value = session['tuners'][current_tuner]['lockkey']
                     case 'program':
-                        if newvalue:
-                            session['tuners'][currenttuner]['program'] = newvalue
-                        value = session['tuners'][currenttuner]['program']
+                        if new_value:
+                            session['tuners'][current_tuner]['program'] = new_value
+                        value = session['tuners'][current_tuner]['program']
                     case 'status':
                         value = f'ch={tinfo["ch"]} lock={tinfo["lock"]} ss={tinfo["ss"]} snq={tinfo["snq"]} seq={tinfo["seq"]} bps={tinfo["bps"]} pps={tinfo["pps"]}'
                     case 'plpinfo':
@@ -171,13 +175,13 @@ def getset(payload: bytes, config: dict, address: tuple):
                     case 'streaminfo':
                         value = tinfo['streaminfo']
                     case 'target':  # This bit is what actually does stuff.
-                        if newvalue:
-                            session['tuners'][currenttuner]['target'] = newvalue
-                        value = session['tuners'][currenttuner]['target']
+                        if new_value:
+                            session['tuners'][current_tuner]['target'] = new_value
+                        value = session['tuners'][current_tuner]['target']
                     case 'vchannel':
-                        if newvalue:
-                            session['tuners'][currenttuner]['vchannel'] = newvalue
-                        value = session['tuners'][currenttuner]['vchannel']
+                        if new_value:
+                            session['tuners'][current_tuner]['vchannel'] = new_value
+                        value = session['tuners'][current_tuner]['vchannel']
             else:
                 raise ValueError('invalid key')
 
