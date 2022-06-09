@@ -21,8 +21,8 @@ def create_http_mgmt_server(config: dict):
     if not os.path.exists(flask.instance_path):
         os.mkdir(flask.instance_path)
 
-    # from . import bla
-    # app.register_blueprint(bla.bp)
+    from .hdhomerun import http_api
+    flask.register_blueprint(http_api.bp)
     return flask
 
 
