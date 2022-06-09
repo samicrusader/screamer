@@ -166,9 +166,12 @@ def getset(payload: bytes, config: dict, address: tuple):
                 match key.split('/tuner')[1].split('/')[1]:
                     case 'channel':
                         if new_value:
-                            freq = int(int(new_value.split(':')[1]) / 1000000)
-                            set_tuner(config, freq, current_tuner)
-                            session['tuners'][current_tuner]['ch'] = new_value
+                            if new_value == 'none':
+                                clear_tuner(current_tuner)
+                            else:
+                                freq = int(int(new_value.split(':')[1]) / 1000000)
+                                set_tuner(config, freq, current_tuner)
+                                session['tuners'][current_tuner]['ch'] = new_value
                         value = session['tuners'][current_tuner]['ch']
                     case 'channelmap':
                         if new_value:
