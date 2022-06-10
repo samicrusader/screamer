@@ -39,14 +39,18 @@ def clear_tuner(tuner: int):
 
 def set_tuner(config: dict, freq: str, tuner: int):
     print(f'wants freq {freq}')
-    if len(freq) < 10:
+    if int(freq.split(':')[1]) < 1000000:
         print(f'channel number {freq.split(":")[1]} detected')
         if 'ch_'+freq.split(':')[1] in config['channels'].keys():
             freq_int = config['channels']['ch_'+freq.split(':')[1]]['freq_low']+1
             print(f'found channel {freq.split(":")[1]} on frequency {freq_int}')
         else:
             print(f'falling back to atsc')
-            freq_int = atsc_freq[int(freq.split(':')[1])]['low']
+            try:
+                freq_int = atsc_freq[int(freq.split(':')[1])]['low']
+            except KeyError:
+                set_tuner(config, f'auto:2', tuner)
+                return
     else:
         freq_int = int(int(freq.split(':')[1]) / 1000000)
     band_raw = freq.split(':')[0]
@@ -70,7 +74,7 @@ def set_tuner(config: dict, freq: str, tuner: int):
             print(f'freq: {type(freq)}')
             print(f'{freq_int} is within {channel["freq_low"]} and {channel["freq_high"]}, used by channel {cid}')
             channels.append(cid)
-    session['tuners'][tuner]['ch'] = freq #f'8vsb:{(freq * 1000000)}'
+    session['tuners'][tuner]['ch'] = freq
     session['tuners'][tuner]['filter'] = '0x0000-0x1fff'
     session['tuners'][tuner]['program'] = 1
     session['tuners'][tuner]['vchannel'] = 'none'
@@ -122,7 +126,11 @@ def scan(config: dict):
                 print(f'checking channel {channel}...')
                 print(channel)
                 print(atsc_freq[channel]["low"])
-                tuned = set_tuner(config, '8vsb:'+str(atsc_freq[channel]["low"] * 1000000), i)  # FIXME: frequency is too exact
+                if session['tuners'][i]['channelmap'] == 'us-bcast':
+                    map = '8vsb'
+                elif session['tuners'][i]['channelmap'] == 'us-cable':
+                    map = 'qam256'
+                tuned = set_tuner(config, f'{map}:{atsc_freq[channel]["low"] * 1000000}', i)  # FIXME: frequency is too exact
                 if tuned:
                     found += 1
                     print(f'added {channel} to found')
@@ -149,11 +157,12 @@ def getset(payload: bytes, config: dict, address: tuple):
         session['lineup']['progress'] = 100
         session['lineup']['found'] = len(config['channels'].keys())
     try:
-        tuners = int(re.findall(r'\d+', config['device']['hwmodel'].split('-')[-1])[0])
+        tuners = int(re.findall(r'\d+', config['device']['hwmodel'].split('-')[-1])[0])-1
     except IndexError:
         tuners = 1
     key_length = (int.from_bytes(payload[1:2], 'little'))
-    key = payload[2:(key_length + 1)].decode()
+    key = payload[2:(key_length + 2)].decode().strip('\x00')
+    print(key)
     new_value = None
     if payload.split(key.encode())[1]:
         newvalue_length = int.from_bytes(payload[(key_length + 3):(key_length + 4)], 'little')
