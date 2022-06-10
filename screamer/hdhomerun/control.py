@@ -41,7 +41,6 @@ def set_tuner(config: dict, freq: str, tuner: int):
     print(f'wants freq {freq}')
     if len(freq) < 10:
         print(f'channel number {freq.split(":")[1]} detected')
-
         if 'ch_'+freq.split(':')[1] in config['channels'].keys():
             freq_int = config['channels']['ch_'+freq.split(':')[1]]['freq_low']+1
             print(f'found channel {freq.split(":")[1]} on frequency {freq_int}')
@@ -123,7 +122,7 @@ def scan(config: dict):
                 print(f'checking channel {channel}...')
                 print(channel)
                 print(atsc_freq[channel]["low"])
-                tuned = set_tuner(config, atsc_freq[channel]["low"], i)  # FIXME: frequency is too exact
+                tuned = set_tuner(config, '8vsb:'+str(atsc_freq[channel]["low"] * 1000000), i)  # FIXME: frequency is too exact
                 if tuned:
                     found += 1
                     print(f'added {channel} to found')
