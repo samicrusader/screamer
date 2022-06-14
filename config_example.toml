@@ -1,14 +1,14 @@
 [server]
 bind = "" # Use * for all interfaces. UDP and LLMNR broadcast servers will always listen on all interfaces however.
-webgui_port = 8080
+hdhr_webgui_port = 8080
 # Users who use the official HDHomerun apps will want all of these enabled.
 # If you just want something for your Plex server, you just want the WebGUI and HTTPStream servers enabled.
-enable_webgui = true # Web interface for managing this instance
-enable_httpstream = true # HTTP Stream interface (:5004/auto/v14.1)
-enable_broadcast = true # UDP broadcast client for detecting devices
-enable_control = true # TCP control port for managing things like channels
+enable_hdhr_webgui = true # Web interface for managing this instance
+enable_hdhr_httpstream = true # HTTP Stream interface (:5004/auto/v14.1)
+enable_hdhr_broadcast = true # UDP broadcast client for detecting devices
+enable_hdhr_control = true # TCP control port for managing things like channels
 
-[device]
+[hdhomerun]
 # hwmodel + model: https://www.silicondust.com/support/linux/
 hwmodel = "HDHR5-4US"
 model = "hdhomerun5_atsc"

@@ -12,7 +12,7 @@ def discover_request(payload: bytes, config: dict):
     payload += 0x00000001.to_bytes(4, 'big')  # HDHOMERUN_DEVICE_TYPE_TUNER
 
     try:
-        tuners = int(re.findall(r'\d+', config['device']['hwmodel'].split('-')[-1])[0])
+        tuners = int(re.findall(r'\d+', config['hdhomerun']['hwmodel'].split('-')[-1])[0])
     except IndexError:
         tuners = 1
 

@@ -37,33 +37,62 @@ def clear_tuner(tuner: int):
     session['tuners'][tuner]['pps'] = 0
 
 
-def set_tuner(config: dict, freq: int, tuner: int):
+def set_tuner(config: dict, freq: str, tuner: int):
+    print(f'wants freq {freq}')
+    if int(freq.split(':')[1]) < 1000000:
+        print(f'channel number {freq.split(":")[1]} detected')
+        if 'ch_'+freq.split(':')[1] in config['channels'].keys():
+            freq_int = config['channels']['ch_'+freq.split(':')[1]]['freq_low']+1
+            print(f'found channel {freq.split(":")[1]} on frequency {freq_int}')
+        else:
+            print(f'falling back to atsc')
+            try:
+                freq_int = atsc_freq[int(freq.split(':')[1])]['low']
+            except KeyError:
+                set_tuner(config, f'auto:2', tuner)
+                return
+    else:
+        freq_int = int(int(freq.split(':')[1]) / 1000000)
+    band_raw = freq.split(':')[0]
+    if band_raw in ['8vsb', 'auto6t']:
+        band = 'terrestial'
+        band_type = '8vsb'
+    elif band_raw in ['qam256', 'qam64', 'qam', 'auto6c']:
+        band = 'cable'
+        if band_raw in ['auto6c', 'qam']:
+            band_type = 'qam256'
+        else:
+            band_type = band_raw
+    elif band_raw == 'auto':
+        if session['tuners'][tuner]['channelmap'] == 'us-bcast':
+            band = 'terrestial'
+            band_type = '8vsb'
+    print(f'adjusting to {freq_int} mhz on {band} with {band_type} (detected from {band_raw})')
     channels = list()
-    print(freq)
     for cid, channel in config['channels'].items():
-        if freq in range(channel['freq_low'], channel['freq_high']+1):
-            print(f'{freq} is definitely within {channel["freq_low"]} and {channel["freq_high"]}')
+        if freq_int in range(channel['freq_low'], channel['freq_high']+1):
+            print(f'freq: {type(freq)}')
+            print(f'{freq_int} is within {channel["freq_low"]} and {channel["freq_high"]}, used by channel {cid}')
             channels.append(cid)
-    print('current channels:', channels)
-    session['tuners'][tuner]['ch'] = f'8vsb:{(freq * 1000000)}'
+    session['tuners'][tuner]['ch'] = freq
     session['tuners'][tuner]['filter'] = '0x0000-0x1fff'
-    session['tuners'][tuner]['program'] = 0
+    session['tuners'][tuner]['program'] = 1
     session['tuners'][tuner]['vchannel'] = 'none'
     session['tuners'][tuner]['dbg'] = '0'  # TODO: figure whatever the hell this is out
     if not channels == list():
-        session['tuners'][tuner]['lock'] = f'8vsb:{(freq * 1000000)}'
+        session['tuners'][tuner]['lock'] = band_type
         session['tuners'][tuner]['ss'] = config['channels'][channels[0]]['signal_strength']
         session['tuners'][tuner]['snq'] = config['channels'][channels[0]]['signal_quality']
         session['tuners'][tuner]['seq'] = config['channels'][channels[0]]['symbol_quality']
-        # session['tuners'][tuner]['bps']  # TODO: implement when streaming is a thing
-        # session['tuners'][tuner]['pps']  # TODO: implement when streaming is a thing
+        session['tuners'][tuner]['bps'] = 19251200  # TODO: implement when streaming is a thing
+        session['tuners'][tuner]['pps'] = 0  # TODO: implement when streaming is a thing
         session['tuners'][tuner]['streaminfo'] = str()
         _i = 1
         for i in channels:
             channel = config['channels'][i]
             session['tuners'][tuner]['streaminfo'] += \
-                f'{_i}: {channel["master_channel"]}.{channel["virtual_channel"]} {channel["name"]}\n'
-        session['tuners'][tuner]['streaminfo'] += 'tsid=0x0100\n\n'
+                f'{_i}: {channel["master_channel"]}.{channel["virtual_channel"]} {channel["name"]}\x0a'
+        session['tuners'][tuner]['streaminfo'] += 'tsid=0x0100\n'
         return True
     else:
         session['tuners'][tuner]['lock'] = 'none'
@@ -81,7 +110,7 @@ def scan(config: dict):
     session['lineup']['progress'] = 0
     session['lineup']['found'] = 0
     try:
-        tuners = int(re.findall(r'\d+', config['device']['hwmodel'].split('-')[-1])[0])
+        tuners = int(re.findall(r'\d+', config['hdhomerun']['hwmodel'].split('-')[-1])[0])
     except IndexError:
         tuners = 1
     arrays = list()
@@ -97,7 +126,11 @@ def scan(config: dict):
                 print(f'checking channel {channel}...')
                 print(channel)
                 print(atsc_freq[channel]["low"])
-                tuned = set_tuner(config, atsc_freq[channel]["low"], i)  # FIXME: frequency is too exact
+                if session['tuners'][i]['channelmap'] == 'us-bcast':
+                    map = '8vsb'
+                elif session['tuners'][i]['channelmap'] == 'us-cable':
+                    map = 'qam256'
+                tuned = set_tuner(config, f'{map}:{atsc_freq[channel]["low"] * 1000000}', i)  # FIXME: frequency is too exact
                 if tuned:
                     found += 1
                     print(f'added {channel} to found')
@@ -124,11 +157,12 @@ def getset(payload: bytes, config: dict, address: tuple):
         session['lineup']['progress'] = 100
         session['lineup']['found'] = len(config['channels'].keys())
     try:
-        tuners = int(re.findall(r'\d+', config['device']['hwmodel'].split('-')[-1])[0])
+        tuners = int(re.findall(r'\d+', config['hdhomerun']['hwmodel'].split('-')[-1])[0])-1
     except IndexError:
         tuners = 1
     key_length = (int.from_bytes(payload[1:2], 'little'))
-    key = payload[2:(key_length + 1)].decode()
+    key = payload[2:(key_length + 2)].decode().strip('\x00')
+    print(key)
     new_value = None
     if payload.split(key.encode())[1]:
         newvalue_length = int.from_bytes(payload[(key_length + 3):(key_length + 4)], 'little')
@@ -137,6 +171,7 @@ def getset(payload: bytes, config: dict, address: tuple):
         except Exception:
             print('new_value is raw bytes, have fun...')
             new_value = payload[(key_length + 4):(key_length + 3 + newvalue_length)]
+    print(f'client requested {key}{":" + str(new_value) if new_value else ""}')
     match key:
         case '/lineup/scan':
             if new_value:
@@ -152,11 +187,11 @@ def getset(payload: bytes, config: dict, address: tuple):
         case '/sys/features':
             value = 'channelmap: us-bcast us-cable us-hrc us-irc kr-bcast kr-cable\nmodulation: 8vsb qam256 qam64\nauto-modulation: auto auto6t auto6c qam\n'
         case '/sys/hwmodel':
-            value = config['device']['hwmodel']
+            value = config['hdhomerun']['hwmodel']
         case '/sys/model':
-            value = config['device']['model']
+            value = config['hdhomerun']['model']
         case '/sys/version':
-            value = config['device']['firmware']
+            value = config['hdhomerun']['firmware']
         case 'help':
             value = 'Supported configuration options:\n/lineup/scan\n/sys/copyright\n/sys/debug\n/sys/features\n/sys/hwmodel\n/sys/model\n/sys/restart <resource>\n/sys/version\n/tuner<n>/channel <modulation>:<freq|ch>\n/tuner<n>/channelmap <channelmap>\n/tuner<n>/debug\n/tuner<n>/filter "0x<nnnn>-0x<nnnn> [...]"\n/tuner<n>/lockkey\n/tuner<n>/program <program number>\n/tuner<n>/status\n/tuner<n>/plpinfo\n/tuner<n>/streaminfo\n/tuner<n>/target <ip>:<port>\n/tuner<n>/vchannel <vchannel>\n'
         case _:
@@ -173,9 +208,7 @@ def getset(payload: bytes, config: dict, address: tuple):
                             if new_value == 'none':
                                 clear_tuner(current_tuner)
                             else:
-                                freq = int(int(new_value.split(':')[1]) / 1000000)
-                                set_tuner(config, freq, current_tuner)
-                                session['tuners'][current_tuner]['ch'] = new_value
+                                set_tuner(config, new_value, current_tuner)
                         value = session['tuners'][current_tuner]['ch']
                     case 'channelmap':
                         if new_value:
@@ -202,8 +235,8 @@ def getset(payload: bytes, config: dict, address: tuple):
                         value = session['tuners'][current_tuner]['lockkey']
                     case 'program':
                         if new_value:
-                            session['tuners'][current_tuner]['program'] = new_value
-                        value = session['tuners'][current_tuner]['program']
+                            session['tuners'][current_tuner]['program'] = int(new_value)
+                        value = str(session['tuners'][current_tuner]['program'])
                     case 'status':
                         value = f'ch={tinfo["ch"]} lock={tinfo["lock"]} ss={tinfo["ss"]} snq={tinfo["snq"]} seq={tinfo["seq"]} bps={tinfo["bps"]} pps={tinfo["pps"]}'
                     case 'plpinfo':
@@ -232,7 +265,7 @@ def getset(payload: bytes, config: dict, address: tuple):
         value_length_bytes += math.ceil((value_length / 236)).to_bytes(1, 'little')  # by (length / 236) rounded up
     else:  # otherwise
         value_length_bytes = value_length.to_bytes(1, 'little')  # just send the length
-        value_length_bytes += 0x01.to_bytes(1, 'little') # with 1
+        #value_length_bytes += 0x01.to_bytes(1, 'little') # with 1
     new_payload += value_length_bytes
     new_payload += value.encode()
     new_payload += 0x00.to_bytes(1, 'big')  # null terminator

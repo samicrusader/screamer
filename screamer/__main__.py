@@ -1,7 +1,7 @@
 import argparse
 from . import logger
-from .hdhomerun import control, discover
-from .hdhomerun.packets import parse
+from .hdhomerun import control as hdhrcontrol, discover as hdhrdiscover
+from .hdhomerun.packets import parse as hdhrparse
 from _thread import start_new_thread
 import logging
 import socket
@@ -14,8 +14,8 @@ log = logger.setup_custom_logger('root')
 config = dict()
 
 
-def create_http_mgmt_server():
-    flask = Flask('screamer_mgmt')
+def hdhr_create_http_mgmt_server():
+    flask = Flask('screamer_hdhr_mgmt')
     flask.app_config = config
 
     if not os.path.exists(flask.instance_path):
@@ -26,8 +26,8 @@ def create_http_mgmt_server():
     return flask
 
 
-def create_http_stream_server():
-    flask = Flask('screamer_http_stream')
+def hdhr_create_http_stream_server():
+    flask = Flask('screamer_hdhr_http_stream')
     flask.app_config = config
 
     if not os.path.exists(flask.instance_path):
@@ -38,9 +38,9 @@ def create_http_stream_server():
     return flask
 
 
-class CreateUDPBroadcastServer:
-    log = logging.getLogger('broadcast')
-    log.setLevel(logging.DEBUG)
+class HDHRCreateUDPBroadcastServer:
+    log = logging.getLogger('hdhr_broadcast')
+    log.setLevel(logging.INFO)
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
     udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -53,12 +53,12 @@ class CreateUDPBroadcastServer:
             self.log.log(logging.INFO, f'Client {address} connected.')
             self.log.log(logging.DEBUG, f'Message from Client: {message}')
 
-            x = parse(message)
+            x = hdhrparse(message)
             self.log.log(logging.DEBUG, f'Packet type: {x[0]}')
             self.log.log(logging.DEBUG, f'Packet payload: {x[1]}')
             match x[0]:
                 case 'discover_request':
-                    func = discover.discover_request
+                    func = hdhrdiscover.discover_request
                 case _:
                     self.log.log(logging.INFO, f'Client {address} sent invalid request.')
                     break
@@ -71,8 +71,8 @@ class CreateUDPBroadcastServer:
             # udp_server_socket.sendto(bytesToSend, address)
 
 
-class CreateLLMNRServer:
-    log = logging.getLogger('llmnr')
+class HDHRCreateLLMNRServer:
+    log = logging.getLogger('hdhr_llmnr')
     log.setLevel(logging.DEBUG)
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
@@ -87,9 +87,9 @@ class CreateLLMNRServer:
             self.log.log(logging.DEBUG, f'Message from Client: {message}')
 
 
-class CreateTCPControlServer:
-    log = logging.getLogger('tcpcontrol')
-    log.setLevel(logging.DEBUG)
+class HDHRCreateTCPControlServer:
+    log = logging.getLogger('hdhr_tcpcontrol')
+    log.setLevel(logging.INFO)
     tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     tcp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 
@@ -102,18 +102,68 @@ class CreateTCPControlServer:
                     break
 
                 self.log.log(logging.DEBUG, f'Message from Client: {message}')
-                x = parse(message)
+                x = hdhrparse(message)
                 self.log.log(logging.DEBUG, f'Packet type: {x[0]}')
                 self.log.log(logging.DEBUG, f'Packet payload: {x[1]}')
                 match x[0]:
                     case 'getset_request':
-                        func = control.getset
+                        func = hdhrcontrol.getset
                     case _:
                         self.log.log(logging.INFO, f'Client {address} sent invalid request.')
                         conn.close()
                 data = func(payload=x[1], config=config, address=address)
                 conn.send(data)
                 self.log.log(logging.DEBUG, f'Sent back {data}')
+            except OSError:
+                self.log.log(logging.INFO, f'Client {address} dropped.')
+                break
+
+    def run(self, ip: str, port: int):
+        self.tcp_socket.bind((ip, port))
+        self.log.log(logging.INFO, f'Listening on {ip if ip else "*"}:{port}')
+        self.tcp_socket.listen()
+        while True:
+            connection, address = self.tcp_socket.accept()
+            self.log.log(logging.INFO, f'Client {address} connected.')
+            start_new_thread(self.handle, (connection, address))
+
+
+class DVBLCreateTCPControlServer:
+    log = logging.getLogger('dvbl_tcpcontrol')
+    log.setLevel(logging.DEBUG)
+    tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    tcp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+
+    def handle(self, conn, address):
+        while True:
+            try:
+                message = conn.recv(12)
+                if not message:
+                    self.log.log(logging.INFO, f'Client {address} dropped.')
+                    break
+                self.log.log(logging.DEBUG, f'Message from Client: {message}')
+                if message == b'e\x00\x00\x00\x00\x00\x00\x00\x1f\x00\x00\x00':
+                    self.log.log(logging.DEBUG, f'Client {address} sent header...')
+                    conn.send(b'\x00')
+                    message2 = conn.recv(31)
+                    self.log.log(logging.DEBUG, f'Message from Client: {message2}')
+                    if message2 == b'22 serialization::archive 8 0 0':
+                        # ??
+                        print('sending header of sorts...')
+                        conn.send(b'\x65\x00\x00\x00\x00\x00\x00\x00\xa5\x02\x05\x00')
+                        import time
+                        time.sleep(1)
+                        print('sending data...')
+                        data = b'<?xml version="1.0"?>\n<channel_map><logical_channel><childlock>0</childlock><type>TV</type><number>1000</number><subnumber>0</subnumber><name>5 Star Max (East)</name><logo_id></logo_id><frequency>10640000</frequency><physical_channel><number>-1</number><subnumber>0</subnumber><type>TV</type><id>http://example.com:&lt;5 Star Max (East)&gt;</id><control_id>16255cfa-5e82-466d-98ab-124141a5870c</control_id><instance_id>54483477-533c-437f-937b-43dc3d1a8dc0</instance_id><instance_name>IPTV-1</instance_name><name>5 Star Max (East)</name><altid>http://example.com</altid><fta>1</fta><sync>0</sync></physical_channel></logical_channel><logical_channel><childlock>0</childlock><type>TV</type><number>1104</number><subnumber>0</subnumber><name>Heroes &amp; Icons Network</name><logo_id></logo_id><frequency>10170000</frequency><physical_channel><number>-1</number><subnumber>0</subnumber><type>TV</type><id>http://example.com:&lt;Heroes &amp; Icons Network&gt;</id><control_id>16255cfa-5e82-466d-98ab-124141a5870c</control_id><instance_id>54483477-533c-437f-937b-43dc3d1a8dc0</instance_id><instance_name>IPTV-1</instance_name><name>Heroes &amp; Icons Network</name><altid>http://example.com</altid><fta>1</fta><sync>0</sync></physical_channel></logical_channel></channel_map>\x0a'
+                        conn.send(f'22 serialization::archive 8 0 0 0 0 {len(data)} '.encode() + data)
+                        print('closing connection...')
+                        conn.close()
+                        break
+                        print('nothing should go beyond this point')
+                else:
+                    self.log.log(logging.DEBUG, f'Don\'t understand packet from client {address}. Dropping...')
+                    conn.close()
+                    return
             except OSError:
                 self.log.log(logging.INFO, f'Client {address} dropped.')
                 break
@@ -195,23 +245,27 @@ if __name__ == '__main__':
         exit(1)
 
     # Parse config variables
-    try: toml_entry = tomlconfig['server']
-    except KeyError: toml_entry = dict()
+    try:
+        toml_entry = tomlconfig['server']
+    except KeyError:
+        toml_entry = dict()
 
     for i in [
-        ('server', ['bind', 'webgui_port', 'enable_webgui', 'enable_httpstream', 'enable_broadcast', 'enable_control']),
-        ('device', ['hwmodel', 'model', 'firmware', 'device_id'])
+        ('server', ['bind', 'hdhr_webgui_port', 'enable_hdhr_webgui', 'enable_hdhr_httpstream', 'enable_hdhr_broadcast','enable_hdhr_control']),
+        ('hdhomerun', ['hwmodel', 'model', 'firmware', 'device_id'])
     ]:
         cfg_entry = dict()
         for x in i[1]:
             if not getattr(args, x) == None:
                 cfg_entry[x] = getattr(args, x)
             else:
-                try: tomlconfig[i[0]][x]
+                try:
+                    tomlconfig[i[0]][x]
                 except KeyError:
                     log.log(logging.ERROR, f'Config variable {i[0]}[{x}] is not set. Bailing out.')
                     exit(1)
-                else: cfg_entry[x] = tomlconfig[i[0]][x]
+                else:
+                    cfg_entry[x] = tomlconfig[i[0]][x]
         config[i[0]] = cfg_entry
 
     config['channels'] = channeldata
@@ -219,38 +273,39 @@ if __name__ == '__main__':
 
     # Configure and start threads
     threads = list()
-    if config['server']['enable_webgui'] == True:
-        webgui_thread = threading.Thread(
-            target=lambda: create_http_mgmt_server().run(host=config['server']['bind'],
-                                                                      port=config['server']['webgui_port'],
-                                                                      use_reloader=False, threaded=True),
-            daemon=True)
-        webgui_thread.start()
-        threads.append(webgui_thread)
-    if config['server']['enable_httpstream'] == True:
-        http_stream_thread = threading.Thread(
-            target=lambda: create_http_stream_server().run(host=config['server']['bind'], port=5004,
-                                                                        use_reloader=False, threaded=True),
-            daemon=True)
-        http_stream_thread.start()
-        threads.append(http_stream_thread)
-    if config['server']['enable_broadcast'] == True:
-        broadcast_thread = threading.Thread(
-            target=lambda: CreateUDPBroadcastServer().run(ip='', port=65001),
-            daemon=True)
-        broadcast_thread.start()
-        threads.append(broadcast_thread)
-    if config['server']['enable_control'] == True:
-        control_thread = threading.Thread(
-            target=lambda: CreateTCPControlServer().run(ip=config['server']['bind'], port=65001),
-            daemon=True)
-        control_thread.start()
-        threads.append(control_thread)
-    #llmnr_thread = threading.Thread(
-    #    target=lambda: CreateLLMNRServer(config=config).run(ip='', port=5355),
+    if config['server']['enable_hdhr_webgui'] == True:
+        hdhr_webgui_thread = threading.Thread(
+            target=lambda: hdhr_create_http_mgmt_server().run(host=config['server']['bind'],
+                                                              port=config['server']['hdhr_webgui_port'],
+                                                              use_reloader=False, threaded=True), daemon=True)
+        hdhr_webgui_thread.start()
+        threads.append(hdhr_webgui_thread)
+    if config['server']['enable_hdhr_httpstream'] == True:
+        hdhr_http_stream_thread = threading.Thread(
+            target=lambda: hdhr_create_http_stream_server().run(host=config['server']['bind'], port=5004,
+                                                                use_reloader=False, threaded=True), daemon=True)
+        hdhr_http_stream_thread.start()
+        threads.append(hdhr_http_stream_thread)
+    if config['server']['enable_hdhr_broadcast'] == True:
+        hdhr_broadcast_thread = threading.Thread(
+            target=lambda: HDHRCreateUDPBroadcastServer().run(ip='', port=65001), daemon=True)
+        hdhr_broadcast_thread.start()
+        threads.append(hdhr_broadcast_thread)
+    if config['server']['enable_hdhr_control'] == True:
+        hdhr_control_thread = threading.Thread(
+            target=lambda: HDHRCreateTCPControlServer().run(ip=config['server']['bind'], port=65001), daemon=True)
+        hdhr_control_thread.start()
+        threads.append(hdhr_control_thread)
+    if config['server']['enable_dvbl_control'] == True:
+        dvbl_control_thread = threading.Thread(
+            target=lambda: DVBLCreateTCPControlServer().run(ip=config['server']['bind'], port=39877), daemon=True)
+        dvbl_control_thread.start()
+        threads.append(dvbl_control_thread)
+    # hdhr_llmnr_thread = threading.Thread(
+    #    target=lambda: HDHRCreateLLMNRServer(config=config).run(ip='', port=5355),
     #    daemon=True)
-    #llmnr_thread.start() # not needed for now
-    #threads.append(llmnr_thread)
+    # hdhr_llmnr_thread.start() # not needed for now
+    # threads.append(hdhr_llmnr_thread)
 
     for thread in threads:
         thread.join()
