@@ -110,7 +110,7 @@ def scan(config: dict):
     session['lineup']['progress'] = 0
     session['lineup']['found'] = 0
     try:
-        tuners = int(re.findall(r'\d+', config['device']['hwmodel'].split('-')[-1])[0])
+        tuners = int(re.findall(r'\d+', config['hdhomerun']['hwmodel'].split('-')[-1])[0])
     except IndexError:
         tuners = 1
     arrays = list()
@@ -157,7 +157,7 @@ def getset(payload: bytes, config: dict, address: tuple):
         session['lineup']['progress'] = 100
         session['lineup']['found'] = len(config['channels'].keys())
     try:
-        tuners = int(re.findall(r'\d+', config['device']['hwmodel'].split('-')[-1])[0])-1
+        tuners = int(re.findall(r'\d+', config['hdhomerun']['hwmodel'].split('-')[-1])[0])-1
     except IndexError:
         tuners = 1
     key_length = (int.from_bytes(payload[1:2], 'little'))
@@ -187,11 +187,11 @@ def getset(payload: bytes, config: dict, address: tuple):
         case '/sys/features':
             value = 'channelmap: us-bcast us-cable us-hrc us-irc kr-bcast kr-cable\nmodulation: 8vsb qam256 qam64\nauto-modulation: auto auto6t auto6c qam\n'
         case '/sys/hwmodel':
-            value = config['device']['hwmodel']
+            value = config['hdhomerun']['hwmodel']
         case '/sys/model':
-            value = config['device']['model']
+            value = config['hdhomerun']['model']
         case '/sys/version':
-            value = config['device']['firmware']
+            value = config['hdhomerun']['firmware']
         case 'help':
             value = 'Supported configuration options:\n/lineup/scan\n/sys/copyright\n/sys/debug\n/sys/features\n/sys/hwmodel\n/sys/model\n/sys/restart <resource>\n/sys/version\n/tuner<n>/channel <modulation>:<freq|ch>\n/tuner<n>/channelmap <channelmap>\n/tuner<n>/debug\n/tuner<n>/filter "0x<nnnn>-0x<nnnn> [...]"\n/tuner<n>/lockkey\n/tuner<n>/program <program number>\n/tuner<n>/status\n/tuner<n>/plpinfo\n/tuner<n>/streaminfo\n/tuner<n>/target <ip>:<port>\n/tuner<n>/vchannel <vchannel>\n'
         case _:

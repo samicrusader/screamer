@@ -1,3 +1,3 @@
 # Screamer
 
-(Work in progress) Full HDHomerun emulator in Python.
+(Work in progress) HDHomerun and DVBLink TV tuner emulators in Python.
