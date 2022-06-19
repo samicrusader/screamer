@@ -22,25 +22,20 @@ class VLCStream:
         self.log.setLevel(logging.DEBUG)
 
     def terminate(self):
-        print('terminate me!')
         self._running = False
         return
 
     def run(self):
         self._running = True
-        print('sex!!!!')
         cmdline = str(f'/usr/bin/vlc -I dummy {self.source} ' +
                 '--sout #transcode{vcodec=mpgv,acodec=ac3,venc=ffmpeg}:rtp{proto=udp,mux=ts,' +
                 f'dst={self.ip},port={self.port}' + '}')
-        print(cmdline)
         p = subprocess.Popen(cmdline.split(' '), shell=False)
         while True:
             sleep(1)
             poll = p.poll()
             if poll is None:
                 if not self._running:
-                    print('terminating')
-                    #p.send_signal(signal.SIGTERM)
                     p.terminate()
                     p.wait()
             else:
@@ -71,7 +66,6 @@ class TCPControlServer:
                                          'snq': 0, 'seq': 0, 'dbg': '0', 'bps': 0, 'pps': 0, 'program': 0,
                                          'lockkey': 'none', 'target': 'none', 'streaminfo': 'none', 'vchannel': 'none',
                                          'source': 'none', 'streamobj': None}
-        print(self.session)
 
     def clear_tuner(self, tuner: int):
         self.session['tuners'][tuner]['ch'] = 'none'
@@ -87,17 +81,13 @@ class TCPControlServer:
         self.session['tuners'][tuner]['pps'] = 0
 
     def set_tuner(self, freq: str, tuner: int):
-        print(f'wants freq {freq}')
         if freq == 'none':
             self.clear_tuner(tuner)
             return
         if int(freq.split(':')[1]) < 1000000:
-            print(f'channel number {freq.split(":")[1]} detected')
             if 'ch_' + freq.split(':')[1] in self.config['channels'].keys():
                 freq_int = self.config['channels']['ch_' + freq.split(':')[1]]['freq_low'] + 1
-                print(f'found channel {freq.split(":")[1]} on frequency {freq_int}')
             else:
-                print(f'falling back to atsc')
                 try:
                     freq_int = atsc_freq[int(freq.split(':')[1])]['low']
                 except KeyError:
@@ -119,12 +109,9 @@ class TCPControlServer:
             if self.session['tuners'][tuner]['channelmap'] == 'us-bcast':
                 band = 'terrestial'
                 band_type = '8vsb'
-        print(f'adjusting to {freq_int} mhz on {band} with {band_type} (detected from {band_raw})')
         channels = list()
         for cid, channel in self.config['channels'].items():
             if freq_int in range(channel['freq_low'], channel['freq_high'] + 1):
-                print(f'freq: {type(freq)}')
-                print(f'{freq_int} is within {channel["freq_low"]} and {channel["freq_high"]}, used by channel {cid}')
                 channels.append(cid)
         self.session['tuners'][tuner]['ch'] = freq
         self.session['tuners'][tuner]['filter'] = '0x0000-0x1fff'
@@ -166,16 +153,12 @@ class TCPControlServer:
         tuners = self.config['hdhomerun']['tuners']
         for array in numpy.array_split(range(2, 70), tuners):
             arrays.append(list(array))
-        print(arrays)
         checked = 0
         found = 0
         while True:
             for i in range(tuners):
                 if not len(arrays[i]) == 0:
                     channel = (arrays[i][0])
-                    print(f'checking channel {channel}...')
-                    print(channel)
-                    print(atsc_freq[channel]["low"])
                     if self.session['tuners'][i]['channelmap'] == 'us-bcast':
                         tunermap = '8vsb'
                     elif self.session['tuners'][i]['channelmap'] == 'us-cable':
@@ -183,14 +166,12 @@ class TCPControlServer:
                     tuned = self.set_tuner(f'{tunermap}:{atsc_freq[channel]["low"] * 1000000}', i)
                     if tuned:
                         found += 1
-                        print(f'added {channel} to found')
                     arrays[i].pop(0)
                     checked += 1
                     self.session['lineup']['progress'] = int((checked / 68) * 100)
                     self.session['lineup']['found'] = found
                     sleep(0.25)
                 else:
-                    print(f'tuner {i} exhausted of channels')
                     self.clear_tuner(i)
             x = 0
             for i in range(tuners):
@@ -201,50 +182,37 @@ class TCPControlServer:
         self.session['lineup']['scan'] = 'complete'
 
     def stream(self, tuner: int, uri: str):
-        print(uri)
         if uri == 'none':
-            print('clearing tuner from stream...')
             self.clear_stream(tuner)
             return
         parsed = urlparse(uri)
-        print(parsed.scheme)
         if parsed.scheme == 'http':  # http is handled by flask server, not my problemo! (shouldn't even be called)
             self.session['tuners'][tuner]['target'] = uri
             return
         elif parsed.scheme == 'rtp':
-            print('got rtp!')
             ip, port = parsed.netloc.split(':')
             self.session['tuners'][tuner]['target'] = uri
-            print('starting keks...')
             self.session['tuners'][tuner]['streamobj'] = VLCStream(self.session['tuners'][tuner]['source'], ip, port)
-            #self.session['tuners'][tuner]['streamobj'].run()
             threading.Thread(target=lambda: self.session['tuners'][tuner]['streamobj'].run(), daemon=True).start()
-            print('started keks')
-        print('stream func end')
 
     def clear_stream(self, tuner: int):
-        if self.session['tuners'][tuner]['streamobj'] == None:
+        if self.session['tuners'][tuner]['streamobj'] is None:
             return
-        print('funnying the funny')
         self.session['tuners'][tuner]['target'] = 'none'
         self.session['tuners'][tuner]['streamobj'].terminate()
         self.session['tuners'][tuner]['streamobj'] = None
-
 
     def getset_request(self, payload: bytes, address: tuple):
         tuners = self.config['hdhomerun']['tuners']
         key_length = (int.from_bytes(payload[1:2], 'little'))
         key = payload[2:(key_length + 2)].decode().strip('\x00')
-        print(key)
         new_value = None
         if payload.split(key.encode())[1]:
             newvalue_length = int.from_bytes(payload[(key_length + 3):(key_length + 4)], 'little')
             try:
                 new_value = payload[(key_length + 4):(key_length + 3 + newvalue_length)].decode()
             except Exception:
-                print('new_value is raw bytes, have fun...')
                 new_value = payload[(key_length + 4):(key_length + 3 + newvalue_length)]
-        print(f'client requested {key}{":" + str(new_value) if new_value else ""}')
         match key:
             case '/lineup/scan':
                 if new_value:
@@ -317,7 +285,6 @@ class TCPControlServer:
                             value = tinfo['streaminfo']
                         case 'target':  # This bit is what actually does stuff.
                             if new_value:
-                                print('starting stream funnies')
                                 self.stream(current_tuner, new_value)
                             value = self.session['tuners'][current_tuner]['target']
                         case 'vchannel':

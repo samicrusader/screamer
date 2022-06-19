@@ -9,8 +9,6 @@ def lineup():
     # create xml
     root = ElementTree.Element('Lineup')
 
-    print(current_app.app_config['channels'])
-
     for _, channel in current_app.app_config['channels'].items():
         program = ElementTree.SubElement(root, 'Program')
         ElementTree.SubElement(program, 'GuideNumber').text = \

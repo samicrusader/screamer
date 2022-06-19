@@ -134,7 +134,6 @@ if __name__ == '__main__':
         config[i[0]] = cfg_entry
 
     config['channels'] = channeldata
-    print(config)
 
     # Configure and start threads
     threads = list()
