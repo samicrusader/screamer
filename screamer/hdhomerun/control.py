@@ -3,7 +3,6 @@ from _thread import start_new_thread
 from screamer.tv_freq import atsc_freq
 from time import sleep
 import logging
-import math
 import numpy
 import socket
 import threading
@@ -30,8 +29,8 @@ class TCPControlServer:
                         'tuners': {}}
         for i in range(self.config['hdhomerun']['tuners']):
             self.session['tuners'][i] = {'ch': 'none', 'channelmap': 'us-bcast', 'filter': '', 'lock': 'none', 'ss': 0,
-                                     'snq': 0, 'seq': 0, 'dbg': '0', 'bps': 0, 'pps': 0, 'program': 0,
-                                     'lockkey': 'none', 'target': 'none', 'streaminfo': 'none', 'vchannel': 'none'}
+                                         'snq': 0, 'seq': 0, 'dbg': '0', 'bps': 0, 'pps': 0, 'program': 0,
+                                         'lockkey': 'none', 'target': 'none', 'streaminfo': 'none', 'vchannel': 'none'}
         print(self.session)
 
     def clear_tuner(self, tuner: int):
@@ -258,22 +257,26 @@ class TCPControlServer:
                 else:
                     raise ValueError('invalid key')
 
+        # key
         new_payload = 0x03.to_bytes(1, 'big')  # HDHOMERUN_TAG_GETSET_NAME
         new_payload += key_length.to_bytes(1, 'little')
         new_payload += key.encode()
         new_payload += 0x00.to_bytes(1, 'big')  # null terminator
+
+        # value
         new_payload += 0x04.to_bytes(1, 'big')  # HDHOMERUN_TAG_GETSET_VALUE
-        value_length = (len(value) + 1)  # we have to account for the null terminator
-        if math.ceil((value_length / 236)) > 1:  # if our length is over 236 bytes
-            value_length_bytes = 0xec.to_bytes(1, 'little')  # we have to split it by 236 and indicate it
-            value_length_bytes += math.ceil((value_length / 236)).to_bytes(1, 'little')  # by (length / 236) rounded up
-        else:  # otherwise
-            value_length_bytes = value_length.to_bytes(1, 'little')  # just send the length
-            if sendlength:  # TODO: figure out what criteria this needs
-                value_length_bytes += 0x01.to_bytes(1, 'little')  # with 1
-        new_payload += value_length_bytes
+        # https://github.com/Silicondust/libhdhomerun/blob/7d4e2d34ed55b6a24282e7317872293cd83dc410/hdhomerun_pkt.h#L37
+        if (len(value) + 1) <= 127:  # if our length (accounting for null terminator) is under 127 bytes
+            new_payload += (len(value) + 1).to_bytes(1, 'little')  # length is one byte with just the length
+        else:  # if our length is over 127 bytes:
+            # our length consists of two bytes
+            # the first byte is the length OR'd with 0x80 (shortened down with an AND)
+            new_payload += int(((len(value) + 1) | 0x80) & 0xFF).to_bytes(1, 'little')
+            # the second byte is the length shifted down 7 bits
+            new_payload += ((len(value) + 1) >> 7).to_bytes(1, 'little')
         new_payload += value.encode()
         new_payload += 0x00.to_bytes(1, 'big')  # null terminator
+
         return create('getset_reply', new_payload)
 
     def handle(self, conn, address):
