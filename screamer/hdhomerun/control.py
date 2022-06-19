@@ -173,7 +173,6 @@ class TCPControlServer:
                 print('new_value is raw bytes, have fun...')
                 new_value = payload[(key_length + 4):(key_length + 3 + newvalue_length)]
         print(f'client requested {key}{":" + str(new_value) if new_value else ""}')
-        sendlength = False
         match key:
             case '/lineup/scan':
                 if new_value:
@@ -187,7 +186,6 @@ class TCPControlServer:
             case '/sys/debug':
                 value = 'mem: ddr=128 nbk=1 dmk=341 fet=0\nloop: pkt=2\nt0: pt=12 cal=-5465\nt1: pt=12 cal=-5465\nt2: pt=12 cal=-5465\nt3: pt=12 cal=-5490\neth: link=100f\n'
             case '/sys/features':
-                sendlength = True
                 value = 'channelmap: us-bcast us-cable us-hrc us-irc kr-bcast kr-cable\nmodulation: 8vsb qam256 qam64\nauto-modulation: auto auto6t auto6c qam\n'
             case '/sys/hwmodel':
                 value = self.config['hdhomerun']['hwmodel']
@@ -240,7 +238,6 @@ class TCPControlServer:
                                 self.session['tuners'][current_tuner]['program'] = int(new_value)
                             value = str(self.session['tuners'][current_tuner]['program'])
                         case 'status':
-                            sendlength = True
                             value = f'ch={tinfo["ch"]} lock={tinfo["lock"]} ss={tinfo["ss"]} snq={tinfo["snq"]} seq={tinfo["seq"]} bps={tinfo["bps"]} pps={tinfo["pps"]}'
                         case 'plpinfo':
                             value = ''  # ??
