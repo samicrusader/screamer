@@ -2,10 +2,49 @@ from .packets import create, parse
 from _thread import start_new_thread
 from screamer.tv_freq import atsc_freq
 from time import sleep
+from urllib.parse import urlparse
 import logging
 import numpy
 import socket
+import subprocess
+import random
 import threading
+
+
+class VLCStream:
+    _running = False
+
+    def __init__(self, source: str, ip: str, port: int):
+        self.source = source
+        self.ip = ip
+        self.port = port
+        self.log = logging.getLogger(f'hdhr_vlcstream-{ip}:{port}')
+        self.log.setLevel(logging.DEBUG)
+
+    def terminate(self):
+        print('terminate me!')
+        self._running = False
+        return
+
+    def run(self):
+        self._running = True
+        print('sex!!!!')
+        cmdline = str(f'/usr/bin/vlc -I dummy {self.source} ' +
+                '--sout #transcode{vcodec=mpgv,acodec=ac3,venc=ffmpeg}:rtp{proto=udp,mux=ts,' +
+                f'dst={self.ip},port={self.port}' + '}')
+        print(cmdline)
+        p = subprocess.Popen(cmdline.split(' '), shell=False)
+        while True:
+            sleep(1)
+            poll = p.poll()
+            if poll is None:
+                if not self._running:
+                    print('terminating')
+                    #p.send_signal(signal.SIGTERM)
+                    p.terminate()
+                    p.wait()
+            else:
+                return
 
 
 class TCPControlServer:
@@ -14,7 +53,7 @@ class TCPControlServer:
     """
     # configure logging
     log = logging.getLogger('hdhr_tcpcontrol')
-    log.setLevel(logging.INFO)
+    log.setLevel(logging.DEBUG)
 
     # configure socket
     tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -30,7 +69,8 @@ class TCPControlServer:
         for i in range(self.config['hdhomerun']['tuners']):
             self.session['tuners'][i] = {'ch': 'none', 'channelmap': 'us-bcast', 'filter': '', 'lock': 'none', 'ss': 0,
                                          'snq': 0, 'seq': 0, 'dbg': '0', 'bps': 0, 'pps': 0, 'program': 0,
-                                         'lockkey': 'none', 'target': 'none', 'streaminfo': 'none', 'vchannel': 'none'}
+                                         'lockkey': 'none', 'target': 'none', 'streaminfo': 'none', 'vchannel': 'none',
+                                         'source': 'none', 'streamobj': None}
         print(self.session)
 
     def clear_tuner(self, tuner: int):
@@ -38,7 +78,6 @@ class TCPControlServer:
         self.session['tuners'][tuner]['filter'] = ''
         self.session['tuners'][tuner]['lock'] = 'none'
         self.session['tuners'][tuner]['program'] = 0
-        # session['tuners'][i]['target'] = 'none'  # TODO: implement when streaming is implemented
         self.session['tuners'][tuner]['vchannel'] = 'none'
         self.session['tuners'][tuner]['ss'] = 0
         self.session['tuners'][tuner]['snq'] = 0
@@ -100,6 +139,7 @@ class TCPControlServer:
             self.session['tuners'][tuner]['bps'] = 19251200  # TODO: implement when streaming is a thing
             self.session['tuners'][tuner]['pps'] = 0  # TODO: implement when streaming is a thing
             self.session['tuners'][tuner]['streaminfo'] = str()
+            self.session['tuners'][tuner]['source'] = self.config['channels'][channels[0]]['source']
             _i = 1
             for i in channels:
                 channel = self.config['channels'][i]
@@ -109,12 +149,13 @@ class TCPControlServer:
             return True
         else:
             self.session['tuners'][tuner]['lock'] = 'none'
-            self.session['tuners'][tuner]['ss'] = 0
+            self.session['tuners'][tuner]['ss'] = random.choice(range(10, 36))  # 0~10 = no connection
             self.session['tuners'][tuner]['snq'] = 0
             self.session['tuners'][tuner]['seq'] = 0
             self.session['tuners'][tuner]['bps'] = 0
             self.session['tuners'][tuner]['pps'] = 0
             self.session['tuners'][tuner]['streaminfo'] = 'none\n\n'
+            self.session['tuners'][tuner]['source'] = 'none'
             return False
 
     def scan(self):
@@ -158,6 +199,37 @@ class TCPControlServer:
             if x == 0:
                 break
         self.session['lineup']['scan'] = 'complete'
+
+    def stream(self, tuner: int, uri: str):
+        print(uri)
+        if uri == 'none':
+            print('clearing tuner from stream...')
+            self.clear_stream(tuner)
+            return
+        parsed = urlparse(uri)
+        print(parsed.scheme)
+        if parsed.scheme == 'http':  # http is handled by flask server, not my problemo! (shouldn't even be called)
+            self.session['tuners'][tuner]['target'] = uri
+            return
+        elif parsed.scheme == 'rtp':
+            print('got rtp!')
+            ip, port = parsed.netloc.split(':')
+            self.session['tuners'][tuner]['target'] = uri
+            print('starting keks...')
+            self.session['tuners'][tuner]['streamobj'] = VLCStream(self.session['tuners'][tuner]['source'], ip, port)
+            #self.session['tuners'][tuner]['streamobj'].run()
+            threading.Thread(target=lambda: self.session['tuners'][tuner]['streamobj'].run(), daemon=True).start()
+            print('started keks')
+        print('stream func end')
+
+    def clear_stream(self, tuner: int):
+        if self.session['tuners'][tuner]['streamobj'] == None:
+            return
+        print('funnying the funny')
+        self.session['tuners'][tuner]['target'] = 'none'
+        self.session['tuners'][tuner]['streamobj'].terminate()
+        self.session['tuners'][tuner]['streamobj'] = None
+
 
     def getset_request(self, payload: bytes, address: tuple):
         tuners = self.config['hdhomerun']['tuners']
@@ -245,7 +317,8 @@ class TCPControlServer:
                             value = tinfo['streaminfo']
                         case 'target':  # This bit is what actually does stuff.
                             if new_value:
-                                self.session['tuners'][current_tuner]['target'] = new_value
+                                print('starting stream funnies')
+                                self.stream(current_tuner, new_value)
                             value = self.session['tuners'][current_tuner]['target']
                         case 'vchannel':
                             if new_value:
